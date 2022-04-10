@@ -12,15 +12,18 @@ var getAll = function (selector, scope) {
 // setup typewriter effect in the terminal demo
 if (document.getElementsByClassName('demo').length > 0) {
   var i = 0;
-  var txt = `scribbler
-            [Entry mode; press Ctrl+D to save and quit; press Ctrl+C to quit without saving]
+  var txt = `speech
 
-            ###todo for new year dinner party
+            # Speech recognition responds the name back
+            # https://pypi.org/project/SpeechRecognition/
 
-            - milk
-            - butter
-            - green onion
-            - lots and lots of kiwis 🥝`;
+            import re
+            import speech_recognition
+
+            recognizer = speech_recognition.Recognizer()
+            with speech_recognition.Microphone() as source:
+              ...
+              ...`;
   var speed = 60;
 
   function typeItOut () {
@@ -127,4 +130,3 @@ window.addEventListener('load', function(){
   }
   icon.addEventListener('click', showNav);
 });
-
