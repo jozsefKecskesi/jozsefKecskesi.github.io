@@ -22,6 +22,7 @@ nav {
 }
 
 .hero__description {
+  width: 60%;
   margin: -1rem auto 2rem auto;
 }
 
