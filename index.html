@@ -29,23 +29,41 @@
     <div class="hero__terminal">
       <pre>
         <!-- Place your demo code here -->
-        <code class="tab__pane active mac">$  brew install scribbler</code>
-        <code class="shell-session demo">hyperyolo ~ $ </code>
+        <code class="shell-session demo">python ~ $ </code>
       </pre>
     </div>
     <div class="wrapper">
       <div class="installation">
-        <h3 class="section__title">Installation</h3>
+        <h3 class="section__title">Simple python code samples</h3>
         <div class="tab__container">
           <ul class="tab__menu">
-            <li class="tab active" data-tab="mac">mac</li>
-            <li class="tab" data-tab="linux">linux</li>
-            <li class="tab" data-tab="win">win</li>
+            <li class="tab active" data-tab="mac">Functions</li>
+            <li class="tab" data-tab="linux">Conditionals</li>
+            <li class="tab" data-tab="win">Loops</li>
           </ul>
           <pre class="nohighlight code">
-            <code class="tab__pane active mac">$  brew install scribbler</code>
-            <code class="tab__pane linux">$  apt-get install scribbler</code>
-            <code class="tab__pane win">$  gem install scribbler</code>
+            <code class="tab__pane active mac"># Replacing spaces in text with three dots
+              <br>playback = input("What would you say? ").replace(" ", "...")
+              <br>print(f"Playback: {playback}")</code>
+            <code class="tab__pane linux"># Demonstrates returning the value of a Boolean expression
+              <br>def main():
+              <br>&nbsp;&nbsp;x = int(input("What's x? "))
+              <br>&nbsp;&nbsp;if is_even(x):
+              <br>&nbsp;&nbsp;&nbsp;&nbsp;print("Even")
+              <br>&nbsp;&nbsp;else:
+              <br>&nbsp;&nbsp;&nbsp;&nbsp;print("Odd")
+              <br>def is_even(n):
+              <br>&nbsp;&nbsp;return n % 2 == 0
+              <br>main()</code>
+            <code class="tab__pane win"># Prints square of bricks using a function with a loop and string multiplication
+              <br>def main():
+              <br>&nbsp;&nbsp;print_square(3)
+              <br>def print_square(size):
+              <br>&nbsp;&nbsp;for _ in range(size):
+              <br>&nbsp;&nbsp;&nbsp;&nbsp;print_row(size)
+              <br>def print_row(width):
+              <br>&nbsp;&nbsp;print("#" * width)
+              <br>main()</code>
           </pre>
         </div>
       </div>
