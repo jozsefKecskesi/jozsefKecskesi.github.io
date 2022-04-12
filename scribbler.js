@@ -14,7 +14,7 @@ if (document.getElementsByClassName('demo').length > 0) {
   var i = 0;
   var txt = `speech
 
-            # Speech recognition responds the name back
+            # Speech recognition responds your name back
             # https://pypi.org/project/SpeechRecognition/
 
             import re
@@ -24,7 +24,7 @@ if (document.getElementsByClassName('demo').length > 0) {
             with speech_recognition.Microphone() as source:
               ...
               ...`;
-  var speed = 60;
+  var speed = 30;
 
   function typeItOut () {
     if (i < txt.length) {
