@@ -88,7 +88,54 @@
         </section>
         <section class="js-section">
           <h3 class="section__title">Outliers</h3>
-          <p>Coming</p>
+          <p>View the distribution and summary statistics for the DepDelay and ArrDelay columns.</p>
+          <div class="code__block code__block--notabs">
+            <pre class="code code--block">
+              <code>
+                <a style="color:green;"># Function to show summary stats and distribution for a column</a>
+def show_distribution(var_data):
+    &nbsp;&nbsp;&nbsp;&nbsp;from matplotlib import pyplot as plt
+
+    <a style="color:green;"># Get statistics</a>
+    min_val = var_data.min()
+    max_val = var_data.max()
+    mean_val = var_data.mean()
+    med_val = var_data.median()
+    mod_val = var_data.mode()[0]
+
+    print(var_data.name,'\nMinimum:{:.2f}\nMean:{:.2f}\nMedian:{:.2f}\nMode:{:.2f}\nMaximum:{:.2f}\n'.format(min_val, mean_val, med_val, mod_val, max_val))
+
+    <a style="color:green;"># Create a figure for 2 subplots (2 rows, 1 column)</a>
+    fig, ax = plt.subplots(2, 1, figsize = (10,4))
+
+    <a style="color:green;"># Plot the histogram</a>
+    ax[0].hist(var_data)
+    ax[0].set_ylabel('Frequency')
+
+    <a style="color:green;"># Add lines for the mean, median, and mode</a>
+    ax[0].axvline(x=min_val, color = 'gray', linestyle='dashed', linewidth = 2)
+    ax[0].axvline(x=mean_val, color = 'cyan', linestyle='dashed', linewidth = 2)
+    ax[0].axvline(x=med_val, color = 'red', linestyle='dashed', linewidth = 2)
+    ax[0].axvline(x=mod_val, color = 'yellow', linestyle='dashed', linewidth = 2)
+    ax[0].axvline(x=max_val, color = 'gray', linestyle='dashed', linewidth = 2)
+
+    <a style="color:green;"># Plot the boxplot</a>
+    ax[1].boxplot(var_data, vert=False)
+    ax[1].set_xlabel('Value')
+
+    <a style="color:green;"># Add a title to the Figure</a>
+    fig.suptitle(var_data.name)
+
+    <a style="color:green;"># Show the figure</a>
+    fig.show()
+
+<a style="color:green;"># Call the function for each delay field</a>
+delayFields = ['DepDelay','ArrDelay']
+for col in delayFields:
+    &nbsp;&nbsp;&nbsp;&nbsp;show_distribution(df_flights[col])
+              </code>
+            </pre>
+          </div>
           <p>Coming</p>
           <p>Coming</p>
           <hr />
