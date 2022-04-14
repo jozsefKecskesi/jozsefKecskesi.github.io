@@ -34,8 +34,8 @@
       </aside>
       <article class="doc__content">
         <section class="js-section">
-          <h3 class="section__title">The sample project</h3>
-          <p>A sample data project to analyze, clean and explore Flight data from Raw Github CSS dataset. Python</p>
+          <h3 class="section__title">Flights - the sample project (Python | Pandas)</h3>
+          <p><b>A sample data project to analyze, clean and explore Flight data from Raw Github CSS dataset. Python</b></p>
           <h3 class="section__title">Load dataset</h3>
           <div class="code__block code__block--notabs">
             <pre class="code code--block">
@@ -46,6 +46,7 @@
               </code>
             </pre>
           </div>
+          <hr />
         </section>
         <section class="js-section">
           <h3 class="section__title">Missing Data</h3>
@@ -138,12 +139,72 @@ for col in delayFields:
           </div>
           <p>There are a outliers at the lower and upper ends of both variables - particularly at the upper end.</p>
           <p>Let's trim the data so that we include only rows where the values for these fields are within the 1st and 90th percentile.</p>
+          <div class="code__block code__block--notabs">
+            <pre class="code code--block">
+              <code>
+                <a style="color:green;"># Trim outliers for ArrDelay based on 1% and 90% percentiles</a>
+          ArrDelay_01pcntile = df_flights.ArrDelay.quantile(0.01)
+          ArrDelay_90pcntile = df_flights.ArrDelay.quantile(0.90)
+          df_flights = df_flights[df_flights.ArrDelay < ArrDelay_90pcntile]
+          df_flights = df_flights[df_flights.ArrDelay > ArrDelay_01pcntile]
+
+          <a style="color:green;"># Trim outliers for DepDelay based on 1% and 90% percentiles</a>
+          DepDelay_01pcntile = df_flights.DepDelay.quantile(0.01)
+          DepDelay_90pcntile = df_flights.DepDelay.quantile(0.90)
+          df_flights = df_flights[df_flights.DepDelay < DepDelay_90pcntile]
+          df_flights = df_flights[df_flights.DepDelay > DepDelay_01pcntile]
+
+          <a style="color:green;"># View the revised distributions</a>
+          for col in delayFields:
+          &nbsp;&nbsp;show_distribution(df_flights[col])
+              </code>
+            </pre>
+          </div>
           <hr />
         </section>
         <section class="js-section">
           <h3 class="section__title">Explore</h3>
-          <p>Coming</p>
-          <p>Coming</p>
+          <p>Let's start with an overall view of the summary statistics for the numeric columns, then answer a few questions regarding to the data.</p>
+          <div class="code__block code__block--notabs">
+            <pre class="code code--block">
+              <code>
+                <a style="color:green;"># Overall view of the summary statistics for the numeric columns.</a>
+          df_flights.describe()
+
+          <a style="color:green;"># What are the mean departure and arrival delays?</a>
+          df_flights[delayFields].mean()
+
+          <a style="color:green;"># How do the carriers compare in terms of arrival delay performance?</a>
+          for col in delayFields:
+          &nbsp;&nbsp;df_flights.boxplot(column=col, by='Carrier', figsize=(8,8))
+
+          <a style="color:green;"># Are some days of the week more prone to arrival days than others?</a>
+          for col in delayFields:
+          &nbsp;&nbsp;df_flights.boxplot(column=col, by='DayOfWeek', figsize=(8,8))
+
+          <a style="color:green;"># Which departure airport has the highest average departure delay?</a>
+          departure_airport_group = df_flights.groupby(df_flights.OriginAirportName)
+
+          mean_departure_delays = pd.DataFrame(departure_airport_group['DepDelay'].mean()).sort_values('DepDelay', ascending=False)
+          mean_departure_delays.plot(kind = "bar", figsize=(12,12))
+          mean_departure_delays
+
+          <a style="color:green;"># Do late departures tend to result in longer arrival delays than on-time departures?</a>
+          df_flights.boxplot(column='ArrDelay', by='DepDel15', figsize=(12,12))
+
+          <a style="color:green;"># Which route (from origin airport to destination airport) has the most late arrivals?</a>
+
+          <a style="color:green;"># Add a routes column</a>
+          routes  = pd.Series(df_flights['OriginAirportName'] + ' > ' + df_flights['DestAirportName'])
+          df_flights = pd.concat([df_flights, routes.rename("Route")], axis=1)
+
+          <a style="color:green;"># Group by routes</a>
+          route_group = df_flights.groupby(df_flights.Route)
+          pd.DataFrame(route_group['ArrDel15'].sum()).sort_values('ArrDel15', ascending=False)
+              </code>
+            </pre>
+          </div>
+          <p>Results screenshots Coming soon</p>
         </section>
       </article>
     </div>

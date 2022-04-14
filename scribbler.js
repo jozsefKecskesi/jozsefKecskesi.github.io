@@ -14,7 +14,7 @@ if (document.getElementsByClassName('demo').length > 0) {
   var i = 0;
   var txt = `speech
 
-            # Speech recognition responds your name back
+            # Speech recognition responds audio (voice) input back
             # https://pypi.org/project/SpeechRecognition/
 
             import re
