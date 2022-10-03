@@ -1,4 +1,4 @@
-# Scribbler - a responsive HTML template for coding projects and documentations
+# Online resume created with: Scribbler - a responsive HTML template for coding projects and documentations
 
 ![Scribbler Screenshot](./screenshot.jpg)
 
