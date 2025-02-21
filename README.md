@@ -21,8 +21,8 @@ If you stumble upon this site, I hope it sparks a moment of curiosity or inspira
 
 ### Connect with Me
 📧 Email: Well... you can use LinkedIn contact me below.
-🔗 LinkedIn: [Jozsef Kecskesi](#[Jozsef Kecskesi](https://www.linkedin.com/in/jozsefkecskesi/))
-🐙 GitHub: [jozsefKecskesi](#[Jozsef Kecskesi](https://github.com/jozsefKecskesi))
+🔗 LinkedIn: ([Jozsef Kecskesi](https://www.linkedin.com/in/jozsefkecskesi/))
+🐙 GitHub: ([Jozsef Kecskesi](https://github.com/jozsefKecskesi))
 
 Enjoy exploring! 🚀
 

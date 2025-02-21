@@ -54,9 +54,9 @@
     <script>
         const animationContainer = document.getElementById('animation-container');
         const controlButton = document.getElementById('control-button');
-        const numCircles = 50;
-        const minCircleSize = 10;
-        const maxCircleSize = 30;
+        const numCircles = 10;
+        const minCircleSize = 50;
+        const maxCircleSize = 150;
         const animationSpeed = 0.2;
         const mouseInfluenceRadius = 100;
         const reactivePercentage = 0.1;
@@ -67,9 +67,9 @@
         let mouseX = -mouseInfluenceRadius * 2;
         let mouseY = -mouseInfluenceRadius * 2;
         let circles = [];
-        let animationRunning = true;  // Flag to track animation state
-        let animationFrameId = null; // Store the requestAnimationFrame ID
-        let intervalId = null; // Store for setInterval ID
+        let animationRunning = true;
+        let animationFrameId = null;
+        let intervalId = null;
 
         function createCircle() {
             const circle = document.createElement('div');
@@ -92,21 +92,87 @@
             const numReactive = Math.floor(numCircles * reactivePercentage);
             for (let i = 0; i < numReactive; i++) {
                 const randomIndex = Math.floor(Math.random() * numCircles);
-                 if (!circles[randomIndex].isReactive) {
+                if (!circles[randomIndex].isReactive) {
                     circles[randomIndex].isReactive = true;
                     circles[randomIndex].reactiveUntil = Date.now() + reactiveDuration;
-                 }
+                }
             }
         }
 
         function updateCircle(circle) {
-              return () => { // Return a closure to capture circle
-                if (!animationRunning) return; // Stop updating if animation is paused
+            return () => {
+                if (!animationRunning) return;
 
                 let currentLeft = parseFloat(circle.style.left);
                 let currentTop = parseFloat(circle.style.top);
                 let moveXSpeed = circle.moveXSpeed;
                 let moveYSpeed = circle.moveYSpeed;
+                const size = parseFloat(circle.style.width); // Get size for calculations
+
+                // --- Collision Detection and Response ---
+                for (const otherCircle of circles) {
+                    if (otherCircle === circle) continue; // Don't check collision with itself
+
+                    let otherLeft = parseFloat(otherCircle.style.left);
+                    let otherTop = parseFloat(otherCircle.style.top);
+                    const otherSize = parseFloat(otherCircle.style.width);
+
+                    // Convert positions from vw/vh to pixels for accurate distance calculation
+                    const currentLeftPx = currentLeft / 100 * window.innerWidth;
+                    const currentTopPx = currentTop / 100 * window.innerHeight;
+                    const otherLeftPx = otherLeft / 100 * window.innerWidth;
+                    const otherTopPx = otherTop / 100 * window.innerHeight;
+
+
+                    const dx = otherLeftPx - currentLeftPx;
+                    const dy = otherTopPx - currentTopPx;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const minDistance = (size / 2) + (otherSize / 2); // Sum of radii
+
+                    if (distance < minDistance) {
+                        // Collision detected!
+
+                        // 1. Calculate the normal vector (the direction of the collision)
+                        const nx = dx / distance;
+                        const ny = dy / distance;
+
+                        // 2. Calculate the relative velocity
+                        const relativeVelocityX = moveXSpeed - otherCircle.moveXSpeed;
+                        const relativeVelocityY = moveYSpeed - otherCircle.moveYSpeed;
+
+                        // 3. Calculate the dot product of the relative velocity and the normal vector
+                        const dotProduct = relativeVelocityX * nx + relativeVelocityY * ny;
+
+                        // 4.  Only respond if circles are moving towards each other (dotProduct < 0)
+                        if (dotProduct < 0) {
+                           // 5. Calculate the impulse (the change in velocity)
+                            const impulse = (2 * dotProduct) / (1 + 1); // Assuming equal mass for simplicity.  Modify for different masses.
+
+                            // 6. Apply the impulse to both circles
+                            moveXSpeed -= impulse * nx;
+                            moveYSpeed -= impulse * ny;
+                            otherCircle.moveXSpeed += impulse * nx;
+                            otherCircle.moveYSpeed += impulse * ny;
+                        }
+
+                        // 7.  Separation: Prevent circles from overlapping
+                        const overlap = minDistance - distance;
+                        const separationX = nx * overlap * 0.5;  // Move each circle half the overlap distance
+                        const separationY = ny * overlap * 0.5;
+
+                        // Convert separation back to vw/vh and add it to current position.
+                        currentLeft -= (separationX / window.innerWidth * 100);
+                        currentTop  -= (separationY / window.innerHeight * 100);
+                        otherLeft += (separationX / window.innerWidth * 100);
+                        otherTop  += (separationY / window.innerHeight * 100);
+
+                        //Update the other cirlce directly.
+                        otherCircle.style.left = `${Math.max(0, Math.min(100 - (otherSize / window.innerWidth * 100), otherLeft))}vw`;
+                        otherCircle.style.top = `${Math.max(0, Math.min(100 - (otherSize / window.innerHeight * 100), otherTop))}vh`;
+                    }
+                }
+                // --- End Collision Detection and Response ---
+
 
                 if (circle.isReactive && Date.now() < circle.reactiveUntil) {
                     const dx = (mouseX / window.innerWidth * 100) - currentLeft;
@@ -126,36 +192,35 @@
                 currentLeft += moveXSpeed;
                 currentTop += moveYSpeed;
 
-                 // Bounce off edges
-                const size = parseFloat(circle.style.width); // Get size here, because it can be changed.
+                // Bounce off edges (keep this after collision handling)
                 if (currentLeft < 0 || currentLeft > 100 - (size / window.innerWidth * 100)) moveXSpeed *= -1;
                 if (currentTop < 0 || currentTop > 100 - (size / window.innerHeight * 100)) moveYSpeed *= -1;
 
-                circle.moveXSpeed = moveXSpeed; //Save speed values
+                circle.moveXSpeed = moveXSpeed;
                 circle.moveYSpeed = moveYSpeed;
 
                 circle.style.left = `${Math.max(0, Math.min(100 - (size / window.innerWidth * 100), currentLeft))}vw`;
                 circle.style.top = `${Math.max(0, Math.min(100 - (size / window.innerHeight * 100), currentTop))}vh`;
 
                 animationFrameId = requestAnimationFrame(updateCircle(circle));
-            }
+            };
         }
 
 
         function startAnimation() {
-            if (animationRunning) return; // Prevent restarting if already running
+            if (animationRunning) return;
 
             animationRunning = true;
             controlButton.textContent = 'Stop Animation';
 
             for (const circle of circles) {
-                 animationFrameId = requestAnimationFrame(updateCircle(circle)); // Restart each circle's animation
+                 animationFrameId = requestAnimationFrame(updateCircle(circle));
             }
-            intervalId = setInterval(chooseReactiveCircles, reactiveDuration); // Restart interval
+            intervalId = setInterval(chooseReactiveCircles, reactiveDuration);
         }
 
        function stopAnimation() {
-          if (!animationRunning) return; // Prevent stopping if not running
+          if (!animationRunning) return;
           animationRunning = false;
           controlButton.textContent = 'Start Animation';
           cancelAnimationFrame(animationFrameId);
@@ -169,7 +234,6 @@
             for (let i = 0; i < numCircles; i++) {
                 const circle = createCircle();
                 circles.push(circle);
-                //Store initial speeds
                 circle.moveXSpeed = random(-animationSpeed, animationSpeed);
                 circle.moveYSpeed = random(-animationSpeed, animationSpeed);
 
@@ -182,14 +246,14 @@
                 circle.style.left = `${x}vw`;
                 circle.style.top = `${y}vh`;
 
-                animationFrameId = requestAnimationFrame(updateCircle(circle)); //Initial animation
+                animationFrameId = requestAnimationFrame(updateCircle(circle));
             }
 
             chooseReactiveCircles();
             intervalId = setInterval(chooseReactiveCircles, reactiveDuration);
         }
 
-        animateCircles(); // Initial animation start
+        animateCircles();
 
         controlButton.addEventListener('click', () => {
           if(animationRunning) {
@@ -210,9 +274,9 @@
         });
 
         window.addEventListener('resize', () => {
-          if(animationRunning) { //Restart animation only when running.
-             stopAnimation(); // Stop to avoid conflicts.
-             animateCircles(); //recreate and start the animation
+          if(animationRunning) {
+             stopAnimation();
+             animateCircles();
           }
         });
     </script>
