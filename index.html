@@ -25,7 +25,6 @@
         .circle {
             position: absolute;
             border-radius: 50%; /* Make it a circle */
-            background-color: #00ffff; /* Cyan color */
             opacity: 0.7;
         }
     </style>
@@ -35,17 +34,24 @@
 
     <script>
         const animationContainer = document.getElementById('animation-container');
-        const numCircles = 50;  // Number of circles
+        const numCircles = 50;
         const minCircleSize = 10;
         const maxCircleSize = 30;
-        const animationSpeed = 0.5;
-        const mouseInfluenceRadius = 100; // Radius for mouse influence
-        let mouseX = -mouseInfluenceRadius * 2; // Initialize mouse position off-screen
+        const animationSpeed = 0.2; // Slower animation speed
+        const mouseInfluenceRadius = 100;
+        const reactivePercentage = 0.1; // 10% of circles are reactive
+        const reactiveDuration = 2000; // 2 seconds reactivity duration (ms)
+
+        let mouseX = -mouseInfluenceRadius * 2;
         let mouseY = -mouseInfluenceRadius * 2;
+        let circles = []; // Store circle objects for easier management
 
         function createCircle() {
             const circle = document.createElement('div');
             circle.classList.add('circle');
+            circle.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`; // Random HSL color
+            circle.isReactive = false; // Flag to track if the circle is currently reactive
+            circle.reactiveUntil = 0; // Timestamp when reactivity ends
             animationContainer.appendChild(circle);
             return circle;
         }
@@ -54,14 +60,34 @@
             return Math.random() * (max - min) + min;
         }
 
+        function chooseReactiveCircles() {
+            // Reset all circles to non-reactive
+            for (const circle of circles) {
+                circle.isReactive = false;
+            }
+
+            // Choose a new set of reactive circles
+            const numReactive = Math.floor(numCircles * reactivePercentage);
+            for (let i = 0; i < numReactive; i++) {
+                const randomIndex = Math.floor(Math.random() * numCircles);
+                if (!circles[randomIndex].isReactive) { // Avoid choosing the same circle twice
+                   circles[randomIndex].isReactive = true;
+                   circles[randomIndex].reactiveUntil = Date.now() + reactiveDuration;
+                }
+            }
+        }
+
+
         function animateCircles() {
             animationContainer.innerHTML = ''; // Clear previous elements
+            circles = []; // Clear previous circle data
 
             for (let i = 0; i < numCircles; i++) {
                 const circle = createCircle();
+                circles.push(circle); // Store circle object
 
                 const size = random(minCircleSize, maxCircleSize);
-                let x = random(0, 100); // Initial positions
+                let x = random(0, 100);
                 let y = random(0, 100);
 
                 circle.style.width = `${size}px`;
@@ -76,20 +102,21 @@
                     let currentLeft = parseFloat(circle.style.left);
                     let currentTop = parseFloat(circle.style.top);
 
-                    // Mouse following logic
-                    const dx = (mouseX / window.innerWidth * 100) - currentLeft;  // Distance from mouse in viewport width %
-                    const dy = (mouseY / window.innerHeight * 100) - currentTop;  // Distance from mouse in viewport height %
-                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    // Mouse following logic (only if reactive)
+                    if (circle.isReactive && Date.now() < circle.reactiveUntil) {
+                        const dx = (mouseX / window.innerWidth * 100) - currentLeft;
+                        const dy = (mouseY / window.innerHeight * 100) - currentTop;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
 
-                    if (distance < mouseInfluenceRadius) {
-                        const influence = (mouseInfluenceRadius - distance) / mouseInfluenceRadius;  // Influence decreases with distance
-                        moveXSpeed += (dx / distance) * influence * 0.5;  // Add a force towards the mouse
-                        moveYSpeed += (dy / distance) * influence * 0.5;
+                        if (distance < mouseInfluenceRadius) {
+                            const influence = (mouseInfluenceRadius - distance) / mouseInfluenceRadius;
+                            moveXSpeed += (dx / distance) * influence * 0.5;
+                            moveYSpeed += (dy / distance) * influence * 0.5;
+                        }
                     }
-
-                    // Limit speed for smoother movement
-                    moveXSpeed = Math.max(-animationSpeed * 2, Math.min(animationSpeed * 2, moveXSpeed));
-                    moveYSpeed = Math.max(-animationSpeed * 2, Math.min(animationSpeed * 2, moveYSpeed));
+                    //Limit speeds
+                     moveXSpeed = Math.max(-animationSpeed * 5, Math.min(animationSpeed * 5, moveXSpeed));
+                     moveYSpeed = Math.max(-animationSpeed * 5, Math.min(animationSpeed * 5, moveYSpeed));
 
                     currentLeft += moveXSpeed;
                     currentTop += moveYSpeed;
@@ -105,6 +132,11 @@
                 }
                 updateCircle();
             }
+                // Initial reactive circle selection
+               chooseReactiveCircles();
+
+                // Periodically choose new reactive circles
+               setInterval(chooseReactiveCircles, reactiveDuration);
         }
 
         animateCircles(); // Initial animation start
@@ -113,16 +145,13 @@
             mouseX = event.clientX;
             mouseY = event.clientY;
         });
-        
-        // Track the mouse leaving, reset to a far-offscreen position
+
         document.addEventListener('mouseleave', (event) => {
-            mouseX = -mouseInfluenceRadius*2;
-            mouseY = -mouseInfluenceRadius*2;
+            mouseX = -mouseInfluenceRadius * 2;
+            mouseY = -mouseInfluenceRadius * 2;
         });
-        
 
         window.addEventListener('resize', animateCircles);
-
     </script>
 </body>
 </html>
