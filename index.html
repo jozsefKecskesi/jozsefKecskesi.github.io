@@ -8,7 +8,7 @@
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #28241c; /* Dark-ish Cream background */
+            background-color: #28241c;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -24,7 +24,7 @@
 
         .circle {
             position: absolute;
-            border-radius: 50%; /* Make it a circle */
+            border-radius: 50%;
             opacity: 0.7;
         }
     </style>
@@ -37,21 +37,23 @@
         const numCircles = 50;
         const minCircleSize = 10;
         const maxCircleSize = 30;
-        const animationSpeed = 0.2; // Slower animation speed
+        const animationSpeed = 0.2;
         const mouseInfluenceRadius = 100;
-        const reactivePercentage = 0.1; // 10% of circles are reactive
-        const reactiveDuration = 2000; // 2 seconds reactivity duration (ms)
+        const reactivePercentage = 0.1;
+        const reactiveDuration = 2000;
+        const reactiveSpeedMultiplier = 0.3; // Reduce speed of reactive circles
+        const reactiveSpeedRandomness = 0.5; // Add randomness to reactive circle speed
 
         let mouseX = -mouseInfluenceRadius * 2;
         let mouseY = -mouseInfluenceRadius * 2;
-        let circles = []; // Store circle objects for easier management
+        let circles = [];
 
         function createCircle() {
             const circle = document.createElement('div');
             circle.classList.add('circle');
-            circle.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`; // Random HSL color
-            circle.isReactive = false; // Flag to track if the circle is currently reactive
-            circle.reactiveUntil = 0; // Timestamp when reactivity ends
+            circle.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            circle.isReactive = false;
+            circle.reactiveUntil = 0;
             animationContainer.appendChild(circle);
             return circle;
         }
@@ -61,30 +63,27 @@
         }
 
         function chooseReactiveCircles() {
-            // Reset all circles to non-reactive
             for (const circle of circles) {
                 circle.isReactive = false;
             }
-
-            // Choose a new set of reactive circles
             const numReactive = Math.floor(numCircles * reactivePercentage);
             for (let i = 0; i < numReactive; i++) {
                 const randomIndex = Math.floor(Math.random() * numCircles);
-                if (!circles[randomIndex].isReactive) { // Avoid choosing the same circle twice
-                   circles[randomIndex].isReactive = true;
-                   circles[randomIndex].reactiveUntil = Date.now() + reactiveDuration;
+                if (!circles[randomIndex].isReactive) {
+                    circles[randomIndex].isReactive = true;
+                    circles[randomIndex].reactiveUntil = Date.now() + reactiveDuration;
                 }
             }
         }
 
 
         function animateCircles() {
-            animationContainer.innerHTML = ''; // Clear previous elements
-            circles = []; // Clear previous circle data
+            animationContainer.innerHTML = '';
+            circles = [];
 
             for (let i = 0; i < numCircles; i++) {
                 const circle = createCircle();
-                circles.push(circle); // Store circle object
+                circles.push(circle);
 
                 const size = random(minCircleSize, maxCircleSize);
                 let x = random(0, 100);
@@ -110,13 +109,16 @@
 
                         if (distance < mouseInfluenceRadius) {
                             const influence = (mouseInfluenceRadius - distance) / mouseInfluenceRadius;
-                            moveXSpeed += (dx / distance) * influence * 0.5;
-                            moveYSpeed += (dy / distance) * influence * 0.5;
+                            // Apply reduced speed and randomness
+                            moveXSpeed += (dx / distance) * influence * 0.5 * reactiveSpeedMultiplier * (1 + random(-reactiveSpeedRandomness, reactiveSpeedRandomness));
+                            moveYSpeed += (dy / distance) * influence * 0.5 * reactiveSpeedMultiplier * (1 + random(-reactiveSpeedRandomness, reactiveSpeedRandomness));
                         }
                     }
-                    //Limit speeds
-                     moveXSpeed = Math.max(-animationSpeed * 5, Math.min(animationSpeed * 5, moveXSpeed));
-                     moveYSpeed = Math.max(-animationSpeed * 5, Math.min(animationSpeed * 5, moveYSpeed));
+
+                    // Limit speeds (adjust multiplier for reactive circles)
+                    const speedLimit = animationSpeed * (circle.isReactive ? 5 * reactiveSpeedMultiplier : 5);
+                    moveXSpeed = Math.max(-speedLimit, Math.min(speedLimit, moveXSpeed));
+                    moveYSpeed = Math.max(-speedLimit, Math.min(speedLimit, moveYSpeed));
 
                     currentLeft += moveXSpeed;
                     currentTop += moveYSpeed;
@@ -132,14 +134,12 @@
                 }
                 updateCircle();
             }
-                // Initial reactive circle selection
-               chooseReactiveCircles();
 
-                // Periodically choose new reactive circles
-               setInterval(chooseReactiveCircles, reactiveDuration);
+            chooseReactiveCircles();
+            setInterval(chooseReactiveCircles, reactiveDuration);
         }
 
-        animateCircles(); // Initial animation start
+        animateCircles();
 
         document.addEventListener('mousemove', (event) => {
             mouseX = event.clientX;
