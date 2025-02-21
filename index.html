@@ -7,26 +7,26 @@
     <style>
         body {
             margin: 0;
-            overflow: hidden; /* Prevent scrollbars */
-            background-color: #111; /* Dark background for tech feel */
-            display: flex; /* Enable flexbox for body */
-            justify-content: center; /* Center content horizontally (optional, but good practice) */
-            align-items: center; /* Center content vertically (optional, but good practice) */
-            height: 100vh; /* Full viewport height */
-            width: 100vw; /* Full viewport width */
+            overflow: hidden;
+            background-color: #28241c; /* Dark-ish Cream background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
         }
 
         #animation-container {
-            width: 100%; /* Take full width of body */
-            height: 100%; /* Take full height of body */
-            position: relative; /* For absolute positioning of elements inside */
+            width: 100%;
+            height: 100%;
+            position: relative;
         }
 
-        .line {
+        .circle {
             position: absolute;
-            background-color: #00ffff; /* Cyan color for tech look */
+            border-radius: 50%; /* Make it a circle */
+            background-color: #00ffff; /* Cyan color */
             opacity: 0.7;
-            border-radius: 2px; /* Slightly rounded lines */
         }
     </style>
 </head>
@@ -35,72 +35,94 @@
 
     <script>
         const animationContainer = document.getElementById('animation-container');
-        const numLines = 100; // Number of lines to animate
-        const minLineLength = 20;
-        const maxLineLength = 100;
-        const animationSpeed = 0.5; // Adjust animation speed
+        const numCircles = 50;  // Number of circles
+        const minCircleSize = 10;
+        const maxCircleSize = 30;
+        const animationSpeed = 0.5;
+        const mouseInfluenceRadius = 100; // Radius for mouse influence
+        let mouseX = -mouseInfluenceRadius * 2; // Initialize mouse position off-screen
+        let mouseY = -mouseInfluenceRadius * 2;
 
-        function createLine() {
-            const line = document.createElement('div');
-            line.classList.add('line');
-            animationContainer.appendChild(line);
-            return line;
+        function createCircle() {
+            const circle = document.createElement('div');
+            circle.classList.add('circle');
+            animationContainer.appendChild(circle);
+            return circle;
         }
 
         function random(min, max) {
             return Math.random() * (max - min) + min;
         }
 
-        function animateLines() {
-            animationContainer.innerHTML = ''; // Clear previous lines
+        function animateCircles() {
+            animationContainer.innerHTML = ''; // Clear previous elements
 
-            for (let i = 0; i < numLines; i++) {
-                const line = createLine();
+            for (let i = 0; i < numCircles; i++) {
+                const circle = createCircle();
 
-                const x = random(0, 100); // Percentage based position
-                const y = random(0, 100);
-                const length = random(minLineLength, maxLineLength);
-                const angle = random(0, 360); // Random angle
+                const size = random(minCircleSize, maxCircleSize);
+                let x = random(0, 100); // Initial positions
+                let y = random(0, 100);
 
-                line.style.width = `${length}px`;
-                line.style.height = '2px'; // Line thickness
-                line.style.left = `${x}vw`; // Use vw for viewport width units
-                line.style.top = `${y}vh`; // Use vh for viewport height units
-                line.style.transform = `rotate(${angle}deg)`;
+                circle.style.width = `${size}px`;
+                circle.style.height = `${size}px`;
+                circle.style.left = `${x}vw`;
+                circle.style.top = `${y}vh`;
 
-                // Animation - simple movement and rotation
-                let currentAngle = angle;
-                let direction = 1; // 1 for clockwise, -1 for counter-clockwise
                 let moveXSpeed = random(-animationSpeed, animationSpeed);
                 let moveYSpeed = random(-animationSpeed, animationSpeed);
 
-                function updateLine() {
-                    currentAngle += 0.2 * direction; // Slightly change angle
-                    if (currentAngle > 360 || currentAngle < 0) direction *= -1; // Reverse direction at boundaries
+                function updateCircle() {
+                    let currentLeft = parseFloat(circle.style.left);
+                    let currentTop = parseFloat(circle.style.top);
 
-                    let currentLeft = parseFloat(line.style.left);
-                    let currentTop = parseFloat(line.style.top);
+                    // Mouse following logic
+                    const dx = (mouseX / window.innerWidth * 100) - currentLeft;  // Distance from mouse in viewport width %
+                    const dy = (mouseY / window.innerHeight * 100) - currentTop;  // Distance from mouse in viewport height %
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < mouseInfluenceRadius) {
+                        const influence = (mouseInfluenceRadius - distance) / mouseInfluenceRadius;  // Influence decreases with distance
+                        moveXSpeed += (dx / distance) * influence * 0.5;  // Add a force towards the mouse
+                        moveYSpeed += (dy / distance) * influence * 0.5;
+                    }
+
+                    // Limit speed for smoother movement
+                    moveXSpeed = Math.max(-animationSpeed * 2, Math.min(animationSpeed * 2, moveXSpeed));
+                    moveYSpeed = Math.max(-animationSpeed * 2, Math.min(animationSpeed * 2, moveYSpeed));
 
                     currentLeft += moveXSpeed;
                     currentTop += moveYSpeed;
 
-                    // Bounce lines off edges
-                    if (currentLeft < 0 || currentLeft > 100 - (length / window.innerWidth * 100) ) moveXSpeed *= -1; // Adjust for line length in vw
-                    if (currentTop < 0 || currentTop > 100 ) moveYSpeed *= -1;
+                    // Bounce off edges
+                    if (currentLeft < 0 || currentLeft > 100 - (size / window.innerWidth * 100)) moveXSpeed *= -1;
+                    if (currentTop < 0 || currentTop > 100 - (size / window.innerHeight * 100)) moveYSpeed *= -1;
 
-                    line.style.transform = `rotate(${currentAngle}deg)`;
-                    line.style.left = `${Math.max(0, Math.min(100 - (length / window.innerWidth * 100), currentLeft))}vw`; // Keep within viewport and adjust for line length
-                    line.style.top = `${Math.max(0, Math.min(100, currentTop))}vh`;
+                    circle.style.left = `${Math.max(0, Math.min(100 - (size / window.innerWidth * 100), currentLeft))}vw`;
+                    circle.style.top = `${Math.max(0, Math.min(100 - (size / window.innerHeight * 100), currentTop))}vh`;
 
-
-                    requestAnimationFrame(updateLine);
+                    requestAnimationFrame(updateCircle);
                 }
-                updateLine();
+                updateCircle();
             }
         }
 
-        animateLines(); // Initial animation start
-        window.addEventListener('resize', animateLines); // Re-animate on window resize for responsiveness
+        animateCircles(); // Initial animation start
+
+        document.addEventListener('mousemove', (event) => {
+            mouseX = event.clientX;
+            mouseY = event.clientY;
+        });
+        
+        // Track the mouse leaving, reset to a far-offscreen position
+        document.addEventListener('mouseleave', (event) => {
+            mouseX = -mouseInfluenceRadius*2;
+            mouseY = -mouseInfluenceRadius*2;
+        });
+        
+
+        window.addEventListener('resize', animateCircles);
+
     </script>
 </body>
 </html>
