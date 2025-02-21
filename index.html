@@ -8,7 +8,7 @@
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #28241c;
+            background-color: #eea005;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -27,13 +27,33 @@
             border-radius: 50%;
             opacity: 0.7;
         }
+
+        #control-button {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 10px 20px;
+            background-color: #00ffff;
+            color: #28241c;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 10; /* Ensure button is on top */
+            font-family: sans-serif;
+        }
+
+        #control-button:hover {
+          opacity: 0.8;
+        }
     </style>
 </head>
 <body>
+    <button id="control-button">Stop Animation</button>
     <div id="animation-container"></div>
 
     <script>
         const animationContainer = document.getElementById('animation-container');
+        const controlButton = document.getElementById('control-button');
         const numCircles = 50;
         const minCircleSize = 10;
         const maxCircleSize = 30;
@@ -41,12 +61,15 @@
         const mouseInfluenceRadius = 100;
         const reactivePercentage = 0.1;
         const reactiveDuration = 2000;
-        const reactiveSpeedMultiplier = 0.3; // Reduce speed of reactive circles
-        const reactiveSpeedRandomness = 0.5; // Add randomness to reactive circle speed
+        const reactiveSpeedMultiplier = 0.3;
+        const reactiveSpeedRandomness = 0.5;
 
         let mouseX = -mouseInfluenceRadius * 2;
         let mouseY = -mouseInfluenceRadius * 2;
         let circles = [];
+        let animationRunning = true;  // Flag to track animation state
+        let animationFrameId = null; // Store the requestAnimationFrame ID
+        let intervalId = null; // Store for setInterval ID
 
         function createCircle() {
             const circle = document.createElement('div');
@@ -69,13 +92,75 @@
             const numReactive = Math.floor(numCircles * reactivePercentage);
             for (let i = 0; i < numReactive; i++) {
                 const randomIndex = Math.floor(Math.random() * numCircles);
-                if (!circles[randomIndex].isReactive) {
+                 if (!circles[randomIndex].isReactive) {
                     circles[randomIndex].isReactive = true;
                     circles[randomIndex].reactiveUntil = Date.now() + reactiveDuration;
-                }
+                 }
             }
         }
 
+        function updateCircle(circle) {
+              return () => { // Return a closure to capture circle
+                if (!animationRunning) return; // Stop updating if animation is paused
+
+                let currentLeft = parseFloat(circle.style.left);
+                let currentTop = parseFloat(circle.style.top);
+                let moveXSpeed = circle.moveXSpeed;
+                let moveYSpeed = circle.moveYSpeed;
+
+                if (circle.isReactive && Date.now() < circle.reactiveUntil) {
+                    const dx = (mouseX / window.innerWidth * 100) - currentLeft;
+                    const dy = (mouseY / window.innerHeight * 100) - currentTop;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < mouseInfluenceRadius) {
+                        const influence = (mouseInfluenceRadius - distance) / mouseInfluenceRadius;
+                        moveXSpeed += (dx / distance) * influence * 0.5 * reactiveSpeedMultiplier * (1 + random(-reactiveSpeedRandomness, reactiveSpeedRandomness));
+                        moveYSpeed += (dy / distance) * influence * 0.5 * reactiveSpeedMultiplier * (1 + random(-reactiveSpeedRandomness, reactiveSpeedRandomness));
+                    }
+                }
+                const speedLimit = animationSpeed * (circle.isReactive ? 5 * reactiveSpeedMultiplier : 5);
+                moveXSpeed = Math.max(-speedLimit, Math.min(speedLimit, moveXSpeed));
+                moveYSpeed = Math.max(-speedLimit, Math.min(speedLimit, moveYSpeed));
+
+                currentLeft += moveXSpeed;
+                currentTop += moveYSpeed;
+
+                 // Bounce off edges
+                const size = parseFloat(circle.style.width); // Get size here, because it can be changed.
+                if (currentLeft < 0 || currentLeft > 100 - (size / window.innerWidth * 100)) moveXSpeed *= -1;
+                if (currentTop < 0 || currentTop > 100 - (size / window.innerHeight * 100)) moveYSpeed *= -1;
+
+                circle.moveXSpeed = moveXSpeed; //Save speed values
+                circle.moveYSpeed = moveYSpeed;
+
+                circle.style.left = `${Math.max(0, Math.min(100 - (size / window.innerWidth * 100), currentLeft))}vw`;
+                circle.style.top = `${Math.max(0, Math.min(100 - (size / window.innerHeight * 100), currentTop))}vh`;
+
+                animationFrameId = requestAnimationFrame(updateCircle(circle));
+            }
+        }
+
+
+        function startAnimation() {
+            if (animationRunning) return; // Prevent restarting if already running
+
+            animationRunning = true;
+            controlButton.textContent = 'Stop Animation';
+
+            for (const circle of circles) {
+                 animationFrameId = requestAnimationFrame(updateCircle(circle)); // Restart each circle's animation
+            }
+            intervalId = setInterval(chooseReactiveCircles, reactiveDuration); // Restart interval
+        }
+
+       function stopAnimation() {
+          if (!animationRunning) return; // Prevent stopping if not running
+          animationRunning = false;
+          controlButton.textContent = 'Start Animation';
+          cancelAnimationFrame(animationFrameId);
+          clearInterval(intervalId);
+       }
 
         function animateCircles() {
             animationContainer.innerHTML = '';
@@ -84,6 +169,9 @@
             for (let i = 0; i < numCircles; i++) {
                 const circle = createCircle();
                 circles.push(circle);
+                //Store initial speeds
+                circle.moveXSpeed = random(-animationSpeed, animationSpeed);
+                circle.moveYSpeed = random(-animationSpeed, animationSpeed);
 
                 const size = random(minCircleSize, maxCircleSize);
                 let x = random(0, 100);
@@ -94,52 +182,22 @@
                 circle.style.left = `${x}vw`;
                 circle.style.top = `${y}vh`;
 
-                let moveXSpeed = random(-animationSpeed, animationSpeed);
-                let moveYSpeed = random(-animationSpeed, animationSpeed);
-
-                function updateCircle() {
-                    let currentLeft = parseFloat(circle.style.left);
-                    let currentTop = parseFloat(circle.style.top);
-
-                    // Mouse following logic (only if reactive)
-                    if (circle.isReactive && Date.now() < circle.reactiveUntil) {
-                        const dx = (mouseX / window.innerWidth * 100) - currentLeft;
-                        const dy = (mouseY / window.innerHeight * 100) - currentTop;
-                        const distance = Math.sqrt(dx * dx + dy * dy);
-
-                        if (distance < mouseInfluenceRadius) {
-                            const influence = (mouseInfluenceRadius - distance) / mouseInfluenceRadius;
-                            // Apply reduced speed and randomness
-                            moveXSpeed += (dx / distance) * influence * 0.5 * reactiveSpeedMultiplier * (1 + random(-reactiveSpeedRandomness, reactiveSpeedRandomness));
-                            moveYSpeed += (dy / distance) * influence * 0.5 * reactiveSpeedMultiplier * (1 + random(-reactiveSpeedRandomness, reactiveSpeedRandomness));
-                        }
-                    }
-
-                    // Limit speeds (adjust multiplier for reactive circles)
-                    const speedLimit = animationSpeed * (circle.isReactive ? 5 * reactiveSpeedMultiplier : 5);
-                    moveXSpeed = Math.max(-speedLimit, Math.min(speedLimit, moveXSpeed));
-                    moveYSpeed = Math.max(-speedLimit, Math.min(speedLimit, moveYSpeed));
-
-                    currentLeft += moveXSpeed;
-                    currentTop += moveYSpeed;
-
-                    // Bounce off edges
-                    if (currentLeft < 0 || currentLeft > 100 - (size / window.innerWidth * 100)) moveXSpeed *= -1;
-                    if (currentTop < 0 || currentTop > 100 - (size / window.innerHeight * 100)) moveYSpeed *= -1;
-
-                    circle.style.left = `${Math.max(0, Math.min(100 - (size / window.innerWidth * 100), currentLeft))}vw`;
-                    circle.style.top = `${Math.max(0, Math.min(100 - (size / window.innerHeight * 100), currentTop))}vh`;
-
-                    requestAnimationFrame(updateCircle);
-                }
-                updateCircle();
+                animationFrameId = requestAnimationFrame(updateCircle(circle)); //Initial animation
             }
 
             chooseReactiveCircles();
-            setInterval(chooseReactiveCircles, reactiveDuration);
+            intervalId = setInterval(chooseReactiveCircles, reactiveDuration);
         }
 
-        animateCircles();
+        animateCircles(); // Initial animation start
+
+        controlButton.addEventListener('click', () => {
+          if(animationRunning) {
+            stopAnimation();
+          } else {
+            startAnimation();
+          }
+        });
 
         document.addEventListener('mousemove', (event) => {
             mouseX = event.clientX;
@@ -151,7 +209,12 @@
             mouseY = -mouseInfluenceRadius * 2;
         });
 
-        window.addEventListener('resize', animateCircles);
+        window.addEventListener('resize', () => {
+          if(animationRunning) { //Restart animation only when running.
+             stopAnimation(); // Stop to avoid conflicts.
+             animateCircles(); //recreate and start the animation
+          }
+        });
     </script>
 </body>
 </html>
