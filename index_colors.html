@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JK Playground</title> <!-- Changed title -->
+    <title>JK Playground</title>
     <style>
         body {
             margin: 0;
@@ -25,7 +25,7 @@
         .circle {
             position: absolute;
             border-radius: 50%;
-            opacity: 0.85; /* Increased opacity (less transparent) */
+            opacity: 0.7;
         }
 
         #control-button {
@@ -63,7 +63,6 @@
         const reactiveDuration = 2000;
         const reactiveSpeedMultiplier = 0.3;
         const reactiveSpeedRandomness = 0.5;
-        const speedRandomnessFactor = 2; // NEW: Factor to increase speed randomness
 
         let mouseX = -mouseInfluenceRadius * 2;
         let mouseY = -mouseInfluenceRadius * 2;
@@ -75,9 +74,7 @@
         function createCircle() {
             const circle = document.createElement('div');
             circle.classList.add('circle');
-            // Generate shades of blue: hue between 180 and 240 (adjust as needed)
-            const hue = random(180, 240);
-            circle.style.backgroundColor = `hsl(${hue}, 100%, 50%)`;  // All blue variants
+            circle.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
             circle.isReactive = false;
             circle.reactiveUntil = 0;
             animationContainer.appendChild(circle);
@@ -110,54 +107,72 @@
                 let currentTop = parseFloat(circle.style.top);
                 let moveXSpeed = circle.moveXSpeed;
                 let moveYSpeed = circle.moveYSpeed;
-                const size = parseFloat(circle.style.width);
+                const size = parseFloat(circle.style.width); // Get size for calculations
 
+                // --- Collision Detection and Response ---
                 for (const otherCircle of circles) {
-                    if (otherCircle === circle) continue;
+                    if (otherCircle === circle) continue; // Don't check collision with itself
 
                     let otherLeft = parseFloat(otherCircle.style.left);
                     let otherTop = parseFloat(otherCircle.style.top);
                     const otherSize = parseFloat(otherCircle.style.width);
 
+                    // Convert positions from vw/vh to pixels for accurate distance calculation
                     const currentLeftPx = currentLeft / 100 * window.innerWidth;
                     const currentTopPx = currentTop / 100 * window.innerHeight;
                     const otherLeftPx = otherLeft / 100 * window.innerWidth;
                     const otherTopPx = otherTop / 100 * window.innerHeight;
 
+
                     const dx = otherLeftPx - currentLeftPx;
                     const dy = otherTopPx - currentTopPx;
                     const distance = Math.sqrt(dx * dx + dy * dy);
-                    const minDistance = (size / 2) + (otherSize / 2);
+                    const minDistance = (size / 2) + (otherSize / 2); // Sum of radii
 
                     if (distance < minDistance) {
+                        // Collision detected!
+
+                        // 1. Calculate the normal vector (the direction of the collision)
                         const nx = dx / distance;
                         const ny = dy / distance;
 
+                        // 2. Calculate the relative velocity
                         const relativeVelocityX = moveXSpeed - otherCircle.moveXSpeed;
                         const relativeVelocityY = moveYSpeed - otherCircle.moveYSpeed;
+
+                        // 3. Calculate the dot product of the relative velocity and the normal vector
                         const dotProduct = relativeVelocityX * nx + relativeVelocityY * ny;
 
+                        // 4.  Only respond if circles are moving towards each other (dotProduct < 0)
                         if (dotProduct < 0) {
-                            const impulse = (2 * dotProduct) / (1 + 1);
+                           // 5. Calculate the impulse (the change in velocity)
+                            const impulse = (2 * dotProduct) / (1 + 1); // Assuming equal mass for simplicity.  Modify for different masses.
+
+                            // 6. Apply the impulse to both circles
                             moveXSpeed -= impulse * nx;
                             moveYSpeed -= impulse * ny;
                             otherCircle.moveXSpeed += impulse * nx;
                             otherCircle.moveYSpeed += impulse * ny;
                         }
 
+                        // 7.  Separation: Prevent circles from overlapping
                         const overlap = minDistance - distance;
-                        const separationX = nx * overlap * 0.5;
+                        const separationX = nx * overlap * 0.5;  // Move each circle half the overlap distance
                         const separationY = ny * overlap * 0.5;
 
+                        // Convert separation back to vw/vh and add it to current position.
                         currentLeft -= (separationX / window.innerWidth * 100);
                         currentTop  -= (separationY / window.innerHeight * 100);
                         otherLeft += (separationX / window.innerWidth * 100);
                         otherTop  += (separationY / window.innerHeight * 100);
 
+                        //Update the other cirlce directly.
                         otherCircle.style.left = `${Math.max(0, Math.min(100 - (otherSize / window.innerWidth * 100), otherLeft))}vw`;
                         otherCircle.style.top = `${Math.max(0, Math.min(100 - (otherSize / window.innerHeight * 100), otherTop))}vh`;
                     }
                 }
+                // --- End Collision Detection and Response ---
+
 
                 if (circle.isReactive && Date.now() < circle.reactiveUntil) {
                     const dx = (mouseX / window.innerWidth * 100) - currentLeft;
@@ -177,6 +192,7 @@
                 currentLeft += moveXSpeed;
                 currentTop += moveYSpeed;
 
+                // Bounce off edges (keep this after collision handling)
                 if (currentLeft < 0 || currentLeft > 100 - (size / window.innerWidth * 100)) moveXSpeed *= -1;
                 if (currentTop < 0 || currentTop > 100 - (size / window.innerHeight * 100)) moveYSpeed *= -1;
 
@@ -218,9 +234,8 @@
             for (let i = 0; i < numCircles; i++) {
                 const circle = createCircle();
                 circles.push(circle);
-                // More random initial speeds:
-                circle.moveXSpeed = random(-animationSpeed, animationSpeed) * speedRandomnessFactor;
-                circle.moveYSpeed = random(-animationSpeed, animationSpeed) * speedRandomnessFactor;
+                circle.moveXSpeed = random(-animationSpeed, animationSpeed);
+                circle.moveYSpeed = random(-animationSpeed, animationSpeed);
 
                 const size = random(minCircleSize, maxCircleSize);
                 let x = random(0, 100);
