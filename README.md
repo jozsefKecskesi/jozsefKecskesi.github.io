@@ -1,27 +1,28 @@
-# Online resume created with: Scribbler - a responsive HTML template for coding projects and documentations
+# Jozsef Kecskesi's GitHub Pages Site
 
-![Scribbler Screenshot](./screenshot.jpg)
+Welcome to my personal GitHub website! 🚀
 
-Scribbler is a responsive HTML/CSS/Javascript template designed for developers who want to set up a small landing page and a documentation/usage page for their coding projects. It is developed with vanilla javascript and many great CSS3 features, such as CSS variables and CSS grid. With performance and simplicity in mind, the template is built without any extra overhead of libraries and is easy to customize.
+## About
+This website (jozsefkecskesi.github.io) is a reflection of my creative journey—a space where I experiment, build, and explore ideas without limitations. It is a digital playground where I bring my thoughts to life through code, design, and data.
 
-Check out the details on [Codrops](https://tympanus.net/codrops/2018/01/12/freebie-scribbler-website-template-html-sketch/)
+## My Digital Space
+This site is not about selling skills or showcasing achievements; it’s an evolving canvas of personal expression. Here, I tinker with web technologies, create projects for the sheer joy of building, and document ideas that intrigue me. It’s a place where curiosity meets code, and where I am free to craft without constraints.
 
-## Live Demo
-👋 [Scribbler Live Demo](https://tympanus.net/Freebies/scribbler/)
+## Inspirations & Experiments
+My creative process is fueled by a fascination with technology, data, and storytelling. Sometimes I dive into visual experiments, blending aesthetics with interactivity. Other times, I explore data-driven narratives, uncovering insights from raw information. Whether it’s a small front-end project or an intricate data visualization, everything here is built for the love of learning and making.
 
-## Credits
-*   [Highlight.js](https://highlightjs.org/)
-*   [Google Fonts - Nunito](https://fonts.google.com/specimen/Nunito+Sans)
-*   [Font Awesome v4](http://fontawesome.io/)
+## The Future
+I have no fixed plans—just a desire to keep creating. This site will grow organically, shaped by whatever interests capture my attention at any given time. It might be a new visualization, a spontaneous coding experiment, or an abstract exploration of an idea.
 
-## License
-Use it freely but please do not republish, distribute or sell "as-is". [Read more about our license.](http://tympanus.net/codrops/licensing/)
+## Thoughts & Reflections
+If you stumble upon this site, I hope it sparks a moment of curiosity or inspiration. Feel free to wander through my projects and musings, knowing that every piece here exists simply because I enjoyed making it.
 
-## Misc
+---
 
-Follow Amie: [Website](https://www.amie-chen.com/), [Dribbble](http://www.dribbble.com/amiechen01), [Github](https://github.com/amiechen), [Twitter](https://twitter.com/hyper_yolo), [Medium](https://medium.com/@hyperyolo)
+### Connect with Me
+📧 Email: Well... you can use LinkedIn contact me below.
+🔗 LinkedIn: [Jozsef Kecskesi](#[Jozsef Kecskesi](https://www.linkedin.com/in/jozsefkecskesi/))
+🐙 GitHub: [jozsefKecskesi](#[Jozsef Kecskesi](https://github.com/jozsefKecskesi))
 
-Follow Codrops: [Twitter](http://www.twitter.com/codrops), [Facebook](http://www.facebook.com/pages/Codrops/159107397912), [Google+](https://plus.google.com/101095823814290637419), [GitHub](https://github.com/codrops), [Pinterest](http://www.pinterest.com/codrops/)
-
-[© Codrops 2018](http://www.codrops.com)
+Enjoy exploring! 🚀
 
