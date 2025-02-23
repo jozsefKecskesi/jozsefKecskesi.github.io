@@ -2,8 +2,8 @@ const animationContainer = document.getElementById('animation-container');
 const controlButton = document.getElementById('control-button');
 
 // --- Constants ---
-const NUM_CIRCLES = 30;
-const ANIMATION_SPEED = 0.2;
+const NUM_CIRCLES = 25;
+const ANIMATION_SPEED = 0.1;
 const MOUSE_INFLUENCE_RADIUS = 100;
 const REACTIVE_PERCENTAGE = 0.1;
 const REACTIVE_DURATION = 2000;
