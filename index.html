@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JK Playground</title>
     <style>
-        /* (Your existing styles - unchanged) */
         body {
             margin: 0;
             overflow: hidden;
@@ -86,13 +85,12 @@
         const INFLUENCE_FACTOR = 0.5;
         const OVERLAP_SEPARATION_FACTOR = 0.5;
         const GRID_CELL_SIZE = 150;
-        const BUTTON_SPEED = 1;
+        const BUTTON_SPEED = 0.5; // Reduced speed
 
         let mouseX = -MOUSE_INFLUENCE_RADIUS * 2;
         let mouseY = -MOUSE_INFLUENCE_RADIUS * 2;
         let circles = [];
         let animationRunning = true;
-        let animationFrameIds = []; // Store multiple IDs
         let intervalId = null;
         let linkedinButton = null;
         let githubButton = null;
@@ -129,15 +127,15 @@
 
             update() {
                 this.handleCollisions();
-                this.handleMouseInfluence(mouseX, mouseY);
+                this.handleMouseInfluence(mouseX, mouseY); // Mouse influence *always* applied
                 this.handleBoundaryCollisions();
-                updateGrid(this); // Update grid *after* boundary collisions
+                updateGrid(this);
                 this.updatePosition();
                 if (animationRunning) {
-                    requestAnimationFrame(() => this.update()); // Correct recursion
+                    requestAnimationFrame(() => this.update());
                 }
-
             }
+
 
             updateGridPosition() {
                 this.gridX = Math.floor((this.x / 100 * window.innerWidth) / GRID_CELL_SIZE);
@@ -175,7 +173,7 @@
                             const dotProduct = this.moveXSpeed * nx + this.moveYSpeed * ny;
                             this.moveXSpeed -= 2 * dotProduct * nx;
                             this.moveYSpeed -= 2 * dotProduct * ny;
-                            this.handleBoundaryCollisions(); // Re-check boundaries after pushing
+                            this.handleBoundaryCollisions();
                         } else {
                             const relativeVelocityX = this.moveXSpeed - other.moveXSpeed;
                             const relativeVelocityY = this.moveYSpeed - other.moveYSpeed;
@@ -197,30 +195,29 @@
                             this.y -= (separationY / window.innerHeight * 100);
                             other.x += (separationX / window.innerWidth * 100);
                             other.y += (separationY / window.innerHeight * 100);
-                            other.handleBoundaryCollisions(); // Re-check boundaries
+                            other.handleBoundaryCollisions();
                         }
                     }
                 }
             }
 
             handleMouseInfluence(mouseX, mouseY) {
-              if (this.isReactive && Date.now() < this.reactiveUntil) {
-                    const dx = (mouseX / window.innerWidth * 100) - this.x;
-                    const dy = (mouseY / window.innerHeight * 100) - this.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
+                // Apply mouse influence *regardless* of isReactive
+                const dx = (mouseX / window.innerWidth * 100) - this.x;
+                const dy = (mouseY / window.innerHeight * 100) - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
 
-                    if (distance < MOUSE_INFLUENCE_RADIUS) {
-                        const influence = (MOUSE_INFLUENCE_RADIUS - distance) / MOUSE_INFLUENCE_RADIUS;
-                        this.moveXSpeed += (dx / distance) * influence * INFLUENCE_FACTOR * REACTIVE_SPEED_MULTIPLIER * (1 + random(-REACTIVE_SPEED_RANDOMNESS, REACTIVE_SPEED_RANDOMNESS));
-                        this.moveYSpeed += (dy / distance) * influence * INFLUENCE_FACTOR * REACTIVE_SPEED_MULTIPLIER * (1 + random(-REACTIVE_SPEED_RANDOMNESS, REACTIVE_SPEED_RANDOMNESS));
-                    }
+                if (distance < MOUSE_INFLUENCE_RADIUS && this.isReactive) {
+                    const influence = (MOUSE_INFLUENCE_RADIUS - distance) / MOUSE_INFLUENCE_RADIUS;
+                    this.moveXSpeed += (dx / distance) * influence * INFLUENCE_FACTOR * REACTIVE_SPEED_MULTIPLIER * (1 + random(-REACTIVE_SPEED_RANDOMNESS, REACTIVE_SPEED_RANDOMNESS));
+                    this.moveYSpeed += (dy / distance) * influence * INFLUENCE_FACTOR * REACTIVE_SPEED_MULTIPLIER * (1 + random(-REACTIVE_SPEED_RANDOMNESS, REACTIVE_SPEED_RANDOMNESS));
                 }
+                // Limit the speed
+                const speedLimit = ANIMATION_SPEED * (this.isReactive ? 5 * REACTIVE_SPEED_MULTIPLIER : 5);  // Keep existing speed limit logic
 
-                const speedLimit = ANIMATION_SPEED * (this.isReactive ? 5 * REACTIVE_SPEED_MULTIPLIER : 5);
                 this.moveXSpeed = Math.max(-speedLimit, Math.min(speedLimit, this.moveXSpeed));
                 this.moveYSpeed = Math.max(-speedLimit, Math.min(speedLimit, this.moveYSpeed));
             }
-
 
             handleBoundaryCollisions() {
                 if (this.x < 0 || this.x > 100 - (this.size / window.innerWidth * 100)) this.moveXSpeed *= -1;
@@ -265,19 +262,17 @@
                 this.handleBoundaryCollisions();
                 this.x += this.moveXSpeed;
                 this.y += this.moveYSpeed;
-                updateGrid(this);  // Update grid *after* boundary collisions
+                updateGrid(this);
                 this.updatePosition();
                 if (animationRunning) {
-                  requestAnimationFrame(() => this.update()); //correct recursion
+                  requestAnimationFrame(() => this.update());
                 }
-
             }
 
             updateGridPosition() {
                 this.gridX = Math.floor((this.x / 100 * window.innerWidth) / GRID_CELL_SIZE);
                 this.gridY = Math.floor((this.y / 100 * window.innerHeight) / GRID_CELL_SIZE);
             }
-
 
             handleBoundaryCollisions() {
                 if (this.x < 0 || this.x > 100 - (this.size / window.innerWidth * 100)) {
@@ -314,7 +309,6 @@
             }
             grid[gridX][gridY].push(item);
         }
-
 
         function updateGrid(item) {
             removeFromGrid(item);
@@ -366,10 +360,8 @@
             if (animationRunning) return;
             animationRunning = true;
             controlButton.textContent = 'Stop Animation';
-
-            // Correctly start animation frames for each object
             for (const circle of circles) {
-                circle.update(); // Use the update method directly
+                circle.update();
             }
             if (linkedinButton) linkedinButton.update();
             if (githubButton) githubButton.update();
@@ -380,7 +372,7 @@
             if (!animationRunning) return;
             animationRunning = false;
             controlButton.textContent = 'Start Animation';
-            clearInterval(intervalId); // Clear reactive circles interval
+            clearInterval(intervalId);
         }
 
         // --- Main Animation Loop ---
@@ -444,7 +436,7 @@
             }
 
             chooseReactiveCircles();
-            if (animationRunning) startAnimation(); // Start after setup
+            if (animationRunning) startAnimation();
         }
 
         // --- Event Listeners ---
