@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JK Playground</title>
     <style>
+        /* (Your existing styles - unchanged) */
         body {
             margin: 0;
             overflow: hidden;
@@ -91,7 +92,7 @@
         let mouseY = -MOUSE_INFLUENCE_RADIUS * 2;
         let circles = [];
         let animationRunning = true;
-        let animationFrameId = null;
+        let animationFrameIds = []; // Store multiple IDs
         let intervalId = null;
         let linkedinButton = null;
         let githubButton = null;
@@ -127,11 +128,15 @@
             }
 
             update() {
-                updateGrid(this); // Update the grid *before* other calculations
                 this.handleCollisions();
                 this.handleMouseInfluence(mouseX, mouseY);
                 this.handleBoundaryCollisions();
+                updateGrid(this); // Update grid *after* boundary collisions
                 this.updatePosition();
+                if (animationRunning) {
+                    requestAnimationFrame(() => this.update()); // Correct recursion
+                }
+
             }
 
             updateGridPosition() {
@@ -145,8 +150,8 @@
                 for (const other of neighbors) {
                     if (other === this) continue;
 
-                    let otherLeft = other.x;
-                    let otherTop = other.y;
+                    const otherLeft = other.x;
+                    const otherTop = other.y;
                     const otherSize = other.size;
 
                     const currentLeftPx = this.x / 100 * window.innerWidth;
@@ -170,7 +175,7 @@
                             const dotProduct = this.moveXSpeed * nx + this.moveYSpeed * ny;
                             this.moveXSpeed -= 2 * dotProduct * nx;
                             this.moveYSpeed -= 2 * dotProduct * ny;
-                            this.handleBoundaryCollisions();
+                            this.handleBoundaryCollisions(); // Re-check boundaries after pushing
                         } else {
                             const relativeVelocityX = this.moveXSpeed - other.moveXSpeed;
                             const relativeVelocityY = this.moveYSpeed - other.moveYSpeed;
@@ -192,8 +197,7 @@
                             this.y -= (separationY / window.innerHeight * 100);
                             other.x += (separationX / window.innerWidth * 100);
                             other.y += (separationY / window.innerHeight * 100);
-
-                            other.handleBoundaryCollisions();
+                            other.handleBoundaryCollisions(); // Re-check boundaries
                         }
                     }
                 }
@@ -216,6 +220,7 @@
                 this.moveXSpeed = Math.max(-speedLimit, Math.min(speedLimit, this.moveXSpeed));
                 this.moveYSpeed = Math.max(-speedLimit, Math.min(speedLimit, this.moveYSpeed));
             }
+
 
             handleBoundaryCollisions() {
                 if (this.x < 0 || this.x > 100 - (this.size / window.innerWidth * 100)) this.moveXSpeed *= -1;
@@ -257,11 +262,14 @@
             }
 
             update() {
-                updateGrid(this); // Update grid *before* moving
                 this.handleBoundaryCollisions();
                 this.x += this.moveXSpeed;
                 this.y += this.moveYSpeed;
+                updateGrid(this);  // Update grid *after* boundary collisions
                 this.updatePosition();
+                if (animationRunning) {
+                  requestAnimationFrame(() => this.update()); //correct recursion
+                }
 
             }
 
@@ -296,7 +304,7 @@
         }
 
         function addToGrid(item) {
-            item.updateGridPosition(); //Correct place for update
+            item.updateGridPosition();
             const { gridX, gridY } = item;
             if (!grid[gridX]) {
                 grid[gridX] = {};
@@ -307,9 +315,10 @@
             grid[gridX][gridY].push(item);
         }
 
+
         function updateGrid(item) {
-            removeFromGrid(item); // First, remove from the old position
-            addToGrid(item);     // Then, add to the new position
+            removeFromGrid(item);
+            addToGrid(item);
         }
 
         function removeFromGrid(item) {
@@ -326,7 +335,7 @@
         }
 
         function getNeighbors(item) {
-            const { gridX, gridY } = item; // Use destructuring for clarity
+            const { gridX, gridY } = item;
             const neighbors = [];
             for (let x = Math.max(0, gridX - 1); x <= gridX + 1; x++) {
                 for (let y = Math.max(0, gridY - 1); y <= gridY + 1; y++) {
@@ -339,7 +348,6 @@
         }
 
         // --- Animation Control ---
-
         function chooseReactiveCircles() {
             for (const circle of circles) {
                 circle.isReactive = false;
@@ -358,11 +366,13 @@
             if (animationRunning) return;
             animationRunning = true;
             controlButton.textContent = 'Stop Animation';
+
+            // Correctly start animation frames for each object
             for (const circle of circles) {
-                animationFrameId = requestAnimationFrame(() => circle.update());
+                circle.update(); // Use the update method directly
             }
-            if (linkedinButton) animationFrameId = requestAnimationFrame(() => linkedinButton.update());
-            if (githubButton) animationFrameId = requestAnimationFrame(() => githubButton.update());
+            if (linkedinButton) linkedinButton.update();
+            if (githubButton) githubButton.update();
             intervalId = setInterval(chooseReactiveCircles, REACTIVE_DURATION);
         }
 
@@ -370,8 +380,7 @@
             if (!animationRunning) return;
             animationRunning = false;
             controlButton.textContent = 'Start Animation';
-            cancelAnimationFrame(animationFrameId);
-            clearInterval(intervalId);
+            clearInterval(intervalId); // Clear reactive circles interval
         }
 
         // --- Main Animation Loop ---
@@ -399,10 +408,9 @@
                 const hue = random(180, 240);
                 const circle = new Circle(x, y, size, moveXSpeed, moveYSpeed, hue);
                 circles.push(circle);
-                addToGrid(circle); // Adds to grid after creation
+                addToGrid(circle);
             }
 
-            // Create Buttons (only if they don't exist)
             if (!linkedinButton) {
                 const linkedinX = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerWidth * 100));
                 const linkedinY = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerHeight * 100));
@@ -436,7 +444,7 @@
             }
 
             chooseReactiveCircles();
-            if (animationRunning) startAnimation();
+            if (animationRunning) startAnimation(); // Start after setup
         }
 
         // --- Event Listeners ---
