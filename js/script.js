@@ -2,7 +2,7 @@ const animationContainer = document.getElementById('animation-container');
 const controlButton = document.getElementById('control-button');
 
 // --- Constants ---
-const NUM_CIRCLES = 30; // Reduced circle count
+const NUM_CIRCLES = 30;
 const ANIMATION_SPEED = 0.2;
 const MOUSE_INFLUENCE_RADIUS = 100;
 const REACTIVE_PERCENTAGE = 0.1;
@@ -19,10 +19,13 @@ const INFLUENCE_FACTOR = 0.5;
 const OVERLAP_SEPARATION_FACTOR = 0.5;
 const GRID_CELL_SIZE = 150;
 const BUTTON_SPEED = 0.5;
-const SOCIAL_BUTTON_MARGIN = SOCIAL_BUTTON_SIZE * 1.1; // Ensure buttons don't spawn too close to the edge
-const SPEED_LIMIT_MULTIPLIER = 5; // For limiting speed in handleMouseInfluence
-const BUTTON_BOUNDARY_RANDOMNESS = 0.2; // For randomness in button boundary collisions
-const SPREAD_FORCE = 0.005;  // New constant: Strength of the spreading force
+const SOCIAL_BUTTON_MARGIN = SOCIAL_BUTTON_SIZE * 1.1;
+const SPEED_LIMIT_MULTIPLIER = 5;
+const BUTTON_BOUNDARY_RANDOMNESS = 0.2;
+const SPREAD_FORCE_CONSTANT = 10; // Constant for distance-based spread force
+const EDGE_REPULSION_FORCE = 0.5; // Strength of edge repulsion
+const EDGE_REPULSION_DISTANCE = 100; // Distance from edge where repulsion starts
+const DAMPING_FACTOR = 0.995; // Damping factor, applied each frame
 
 let mouseX = -MOUSE_INFLUENCE_RADIUS * 2;
 let mouseY = -MOUSE_INFLUENCE_RADIUS * 2;
@@ -33,7 +36,7 @@ let linkedinButton = null;
 let githubButton = null;
 let resizeTimeout;
 let grid = {};
-let viewportWidth = window.innerWidth; // Cache viewport dimensions
+let viewportWidth = window.innerWidth;
 let viewportHeight = window.innerHeight;
 
 // --- Circle Class ---
@@ -65,15 +68,17 @@ class Circle {
     }
 
     update() {
-        this.applySpreadForce(); // Apply the spreading force *before* other forces
+        this.applySpreadForce();
+        this.applyEdgeRepulsion(); // Apply edge repulsion
         this.handleCollisions();
         this.handleMouseInfluence(mouseX, mouseY);
         this.handleBoundaryCollisions();
+        this.applyDamping();
         updateGrid(this);
         // Update x and y based on speed
         this.x += this.moveXSpeed;
         this.y += this.moveYSpeed;
-        this.updatePosition(); // Update the visual position
+        this.updatePosition();
         if (animationRunning) {
             requestAnimationFrame(() => this.update());
         }
@@ -83,6 +88,7 @@ class Circle {
         this.gridX = Math.floor((this.x / 100 * viewportWidth) / GRID_CELL_SIZE);
         this.gridY = Math.floor((this.y / 100 * viewportHeight) / GRID_CELL_SIZE);
     }
+
     handleCircleCollision(other) {
         const otherLeft = other.x;
         const otherTop = other.y;
@@ -92,7 +98,6 @@ class Circle {
         const currentTopPx = this.y / 100 * viewportHeight;
         const otherLeftPx = otherLeft / 100 * viewportWidth;
         const otherTopPx = otherTop / 100 * viewportHeight;
-
 
         const dx = otherLeftPx - currentLeftPx;
         const dy = otherTopPx - currentTopPx;
@@ -127,7 +132,7 @@ class Circle {
         }
     }
 
-    handleButtonCollision(other) {
+     handleButtonCollision(other) {
 
         const otherLeft = other.x;
         const otherTop = other.y;
@@ -171,7 +176,6 @@ class Circle {
             }
         }
     }
-
     handleMouseInfluence(mouseX, mouseY) {
         const dx = (mouseX / viewportWidth * 100) - this.x;
         const dy = (mouseY / viewportHeight * 100) - this.y;
@@ -188,6 +192,7 @@ class Circle {
         this.moveYSpeed = Math.max(-speedLimit, Math.min(speedLimit, this.moveYSpeed));
     }
 
+
     handleBoundaryCollisions() {
         if (this.x < 0 || this.x > 100 - (this.size / viewportWidth * 100)) this.moveXSpeed *= -1;
         if (this.y < 0 || this.y > 100 - (this.size / viewportHeight * 100)) this.moveYSpeed *= -1;
@@ -199,18 +204,45 @@ class Circle {
         for (const other of circles) {
             if (other === this) continue;
 
-            const dx = (other.x - this.x); // No need to convert to pixels, we just need the direction
+            const dx = (other.x - this.x);
             const dy = (other.y - this.y);
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            if (distance > 0) { // Avoid division by zero and self-repulsion
+            if (distance > 0) {
                 const nx = dx / distance;
                 const ny = dy / distance;
-                // Apply a constant, small repulsive force.
-                this.moveXSpeed -= nx * SPREAD_FORCE;
-                this.moveYSpeed -= ny * SPREAD_FORCE;
+                // Force is inversely proportional to the square of the distance.
+                const force = SPREAD_FORCE_CONSTANT / (distance * distance);
+                this.moveXSpeed -= nx * force;
+                this.moveYSpeed -= ny * force;
             }
         }
+    }
+
+    applyEdgeRepulsion() {
+        const left = this.x / 100 * viewportWidth;
+        const top = this.y / 100 * viewportHeight;
+
+        // Left edge
+        if (left < EDGE_REPULSION_DISTANCE) {
+            this.moveXSpeed += EDGE_REPULSION_FORCE * (1 - left / EDGE_REPULSION_DISTANCE);
+        }
+        // Right edge
+        if (viewportWidth - left - this.size < EDGE_REPULSION_DISTANCE) {
+            this.moveXSpeed -= EDGE_REPULSION_FORCE * (1 - (viewportWidth - left - this.size) / EDGE_REPULSION_DISTANCE);
+        }
+        // Top edge
+        if (top < EDGE_REPULSION_DISTANCE) {
+            this.moveYSpeed += EDGE_REPULSION_FORCE * (1 - top / EDGE_REPULSION_DISTANCE);
+        }
+        // Bottom edge
+        if (viewportHeight - top - this.size < EDGE_REPULSION_DISTANCE) {
+            this.moveYSpeed -= EDGE_REPULSION_FORCE * (1 - (viewportHeight - top - this.size) / EDGE_REPULSION_DISTANCE);
+        }
+    }
+    applyDamping() {
+        this.moveXSpeed *= DAMPING_FACTOR;
+        this.moveYSpeed *= DAMPING_FACTOR;
     }
 }
 
