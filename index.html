@@ -127,16 +127,16 @@
             }
 
             update() {
+                updateGrid(this); // Update the grid *before* other calculations
                 this.handleCollisions();
                 this.handleMouseInfluence(mouseX, mouseY);
                 this.handleBoundaryCollisions();
                 this.updatePosition();
-                updateGrid(this); // Update the grid
             }
 
-             updateGridPosition() {
-              this.gridX = Math.floor((this.x / 100 * window.innerWidth) / GRID_CELL_SIZE);
-              this.gridY = Math.floor((this.y / 100 * window.innerHeight) / GRID_CELL_SIZE);
+            updateGridPosition() {
+                this.gridX = Math.floor((this.x / 100 * window.innerWidth) / GRID_CELL_SIZE);
+                this.gridY = Math.floor((this.y / 100 * window.innerHeight) / GRID_CELL_SIZE);
             }
 
             handleCollisions() {
@@ -167,7 +167,6 @@
                             const overlap = minDistance - distance;
                             this.x -= (nx * overlap) / window.innerWidth * 100;
                             this.y -= (ny * overlap) / window.innerHeight * 100;
-                             // Reflect the circle's velocity
                             const dotProduct = this.moveXSpeed * nx + this.moveYSpeed * ny;
                             this.moveXSpeed -= 2 * dotProduct * nx;
                             this.moveYSpeed -= 2 * dotProduct * ny;
@@ -202,10 +201,8 @@
 
             handleMouseInfluence(mouseX, mouseY) {
               if (this.isReactive && Date.now() < this.reactiveUntil) {
-                    const currentLeft = this.x;
-                    const currentTop = this.y;
-                    const dx = (mouseX / window.innerWidth * 100) - currentLeft;
-                    const dy = (mouseY / window.innerHeight * 100) - currentTop;
+                    const dx = (mouseX / window.innerWidth * 100) - this.x;
+                    const dy = (mouseY / window.innerHeight * 100) - this.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
 
                     if (distance < MOUSE_INFLUENCE_RADIUS) {
@@ -242,17 +239,14 @@
                 this.element.href = href;
                 this.element.target = '_blank';
                 this.element.rel = "noopener noreferrer";
-
                 const img = document.createElement('img');
                 img.src = imgSrc;
                 img.alt = imgAlt;
                 this.element.appendChild(img);
-
                 this.element.style.width = `${this.size}px`;
                 this.element.style.height = `${this.size}px`;
-                this.gridX = 0; // Add grid coordinates
+                this.gridX = 0;
                 this.gridY = 0;
-
                 this.updatePosition();
                 animationContainer.appendChild(this.element);
             }
@@ -263,11 +257,17 @@
             }
 
             update() {
+                updateGrid(this); // Update grid *before* moving
                 this.handleBoundaryCollisions();
                 this.x += this.moveXSpeed;
                 this.y += this.moveYSpeed;
                 this.updatePosition();
-                updateGrid(this);  // Update the grid
+
+            }
+
+            updateGridPosition() {
+                this.gridX = Math.floor((this.x / 100 * window.innerWidth) / GRID_CELL_SIZE);
+                this.gridY = Math.floor((this.y / 100 * window.innerHeight) / GRID_CELL_SIZE);
             }
 
 
@@ -296,11 +296,8 @@
         }
 
         function addToGrid(item) {
-            const gridX = Math.floor((item.x / 100 * window.innerWidth) / GRID_CELL_SIZE);
-            const gridY = Math.floor((item.y / 100 * window.innerHeight) / GRID_CELL_SIZE);
-            item.gridX = gridX;
-            item.gridY = gridY;
-
+            item.updateGridPosition(); //Correct place for update
+            const { gridX, gridY } = item;
             if (!grid[gridX]) {
                 grid[gridX] = {};
             }
@@ -310,22 +307,15 @@
             grid[gridX][gridY].push(item);
         }
 
-        // Function to update grid
         function updateGrid(item) {
-            // Remove item from its old grid position
-            removeFromGrid(item);
-            // Update item's grid position
-            item.updateGridPosition(); //for circle, for buttons it is in-place
-            // Add item to its new grid position
-            addToGrid(item);
+            removeFromGrid(item); // First, remove from the old position
+            addToGrid(item);     // Then, add to the new position
         }
 
-        // Function for removing the item
         function removeFromGrid(item) {
             const { gridX, gridY } = item;
             if (grid[gridX] && grid[gridX][gridY]) {
-                grid[gridX][gridY] = grid[gridX][gridY].filter((otherItem) => otherItem !== item);
-                // Clean up empty grid cells
+                grid[gridX][gridY] = grid[gridX][gridY].filter(other => other !== item);
                 if (grid[gridX][gridY].length === 0) {
                     delete grid[gridX][gridY];
                     if (Object.keys(grid[gridX]).length === 0) {
@@ -336,10 +326,8 @@
         }
 
         function getNeighbors(item) {
-            const gridX = item.gridX;
-            const gridY = item.gridY;
+            const { gridX, gridY } = item; // Use destructuring for clarity
             const neighbors = [];
-
             for (let x = Math.max(0, gridX - 1); x <= gridX + 1; x++) {
                 for (let y = Math.max(0, gridY - 1); y <= gridY + 1; y++) {
                     if (grid[x] && grid[x][y]) {
@@ -351,6 +339,7 @@
         }
 
         // --- Animation Control ---
+
         function chooseReactiveCircles() {
             for (const circle of circles) {
                 circle.isReactive = false;
@@ -367,16 +356,13 @@
 
         function startAnimation() {
             if (animationRunning) return;
-
             animationRunning = true;
             controlButton.textContent = 'Stop Animation';
-            // Start the animation loops *after* everything is set up
             for (const circle of circles) {
                 animationFrameId = requestAnimationFrame(() => circle.update());
             }
-             if(linkedinButton) animationFrameId = requestAnimationFrame(() => linkedinButton.update());//check null
-             if(githubButton) animationFrameId = requestAnimationFrame(() => githubButton.update());//check null
-
+            if (linkedinButton) animationFrameId = requestAnimationFrame(() => linkedinButton.update());
+            if (githubButton) animationFrameId = requestAnimationFrame(() => githubButton.update());
             intervalId = setInterval(chooseReactiveCircles, REACTIVE_DURATION);
         }
 
@@ -404,7 +390,6 @@
             const maxCircleSize = smallerDimension * MAX_SIZE_PERCENTAGE;
             const adjustedMinCircleSize = Math.max(minCircleSize, ABSOLUTE_MIN_SIZE);
 
-            // Create Circles
             for (let i = 0; i < NUM_CIRCLES; i++) {
                 const size = random(adjustedMinCircleSize, maxCircleSize);
                 const x = random(0, 100 - (size / window.innerWidth * 100));
@@ -414,53 +399,50 @@
                 const hue = random(180, 240);
                 const circle = new Circle(x, y, size, moveXSpeed, moveYSpeed, hue);
                 circles.push(circle);
-                addToGrid(circle);
+                addToGrid(circle); // Adds to grid after creation
             }
 
-            // Create LinkedIn Button
-            const linkedinX = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerWidth * 100));
-            const linkedinY = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerHeight * 100));
-            linkedinButton = new SocialButton(
-                linkedinX,
-                linkedinY,
-                SOCIAL_BUTTON_SIZE,
-                random(-1, 1) * BUTTON_SPEED,
-                random(-1, 1) * BUTTON_SPEED,
-                'https://www.linkedin.com/in/jozsefkecskesi/',
-                "img/linkedin.png",
-                "LinkedIn"
-            );
-            addToGrid(linkedinButton); // Crucial: Add to grid
+            // Create Buttons (only if they don't exist)
+            if (!linkedinButton) {
+                const linkedinX = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerWidth * 100));
+                const linkedinY = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerHeight * 100));
+                linkedinButton = new SocialButton(
+                    linkedinX,
+                    linkedinY,
+                    SOCIAL_BUTTON_SIZE,
+                    random(-1, 1) * BUTTON_SPEED,
+                    random(-1, 1) * BUTTON_SPEED,
+                    'https://www.linkedin.com/in/jozsefkecskesi/',
+                    "img/linkedin.png",
+                    "LinkedIn"
+                );
+                addToGrid(linkedinButton);
+            }
 
-            // Create GitHub Button
-            const githubX = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerWidth * 100));
-            const githubY = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerHeight * 100));
-            githubButton = new SocialButton(
-                githubX,
-                githubY,
-                SOCIAL_BUTTON_SIZE,
-                random(-1, 1) * BUTTON_SPEED,
-                random(-1, 1) * BUTTON_SPEED,
-                'https://github.com/jozsefKecskesi',
-                "github.png",
-                "img/GitHub"
-            );
-            addToGrid(githubButton);  // Crucial: Add to grid
-
+            if (!githubButton) {
+                const githubX = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerWidth * 100));
+                const githubY = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerHeight * 100));
+                githubButton = new SocialButton(
+                    githubX,
+                    githubY,
+                    SOCIAL_BUTTON_SIZE,
+                    random(-1, 1) * BUTTON_SPEED,
+                    random(-1, 1) * BUTTON_SPEED,
+                    'https://github.com/jozsefKecskesi',
+                    "img/github.png",
+                    "GitHub"
+                );
+                addToGrid(githubButton);
+            }
 
             chooseReactiveCircles();
-            if (animationRunning) startAnimation();//call it here, not up there
-
+            if (animationRunning) startAnimation();
         }
 
         // --- Event Listeners ---
 
         controlButton.addEventListener('click', () => {
-            if (animationRunning) {
-                stopAnimation();
-            } else {
-                startAnimation();
-            }
+            animationRunning ? stopAnimation() : startAnimation();
         });
 
         document.addEventListener('mousemove', (event) => {
@@ -484,8 +466,7 @@
         });
 
         // --- Initialization ---
-
-        animateCircles(); // Initial setup
+        animateCircles();
 
     </script>
 </body>
