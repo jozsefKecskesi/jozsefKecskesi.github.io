@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JK Playground</title> <!-- Changed title -->
+    <title>JK Playground</title>
     <style>
         body {
             margin: 0;
@@ -25,8 +25,22 @@
         .circle {
             position: absolute;
             border-radius: 50%;
-            opacity: 0.85; /* Increased opacity (less transparent) */
+            opacity: 0.85;
         }
+
+        .linkedin-button {
+            position: absolute;
+            border-radius: 5px; /* Slightly rounded corners for the button */
+            cursor: pointer; /* Change cursor on hover */
+            z-index: 11;
+           
+        }
+        .linkedin-button img {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
 
         #control-button {
             position: absolute;
@@ -38,7 +52,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            z-index: 10; /* Ensure button is on top */
+            z-index: 10;
             font-family: sans-serif;
         }
 
@@ -55,15 +69,14 @@
         const animationContainer = document.getElementById('animation-container');
         const controlButton = document.getElementById('control-button');
         const numCircles = 20;
-        const minCircleSize = 80;
-        const maxCircleSize = 150;
         const animationSpeed = 0.2;
         const mouseInfluenceRadius = 100;
         const reactivePercentage = 0.1;
         const reactiveDuration = 2000;
         const reactiveSpeedMultiplier = 0.3;
         const reactiveSpeedRandomness = 0.5;
-        const speedRandomnessFactor = 2; // NEW: Factor to increase speed randomness
+        const speedRandomnessFactor = 2;
+        const linkedinButtonSize = 50; // Size of the LinkedIn button
 
         let mouseX = -mouseInfluenceRadius * 2;
         let mouseY = -mouseInfluenceRadius * 2;
@@ -71,18 +84,39 @@
         let animationRunning = true;
         let animationFrameId = null;
         let intervalId = null;
+        let linkedinButton = null; // Store the LinkedIn button element
 
         function createCircle() {
             const circle = document.createElement('div');
             circle.classList.add('circle');
-            // Generate shades of blue: hue between 180 and 240 (adjust as needed)
             const hue = random(180, 240);
-            circle.style.backgroundColor = `hsl(${hue}, 100%, 50%)`;  // All blue variants
+            circle.style.backgroundColor = `hsl(${hue}, 100%, 50%)`;
             circle.isReactive = false;
             circle.reactiveUntil = 0;
             animationContainer.appendChild(circle);
             return circle;
         }
+
+        function createLinkedinButton() {
+            const button = document.createElement('a'); // Use an anchor tag for the link
+            button.classList.add('linkedin-button');
+            button.href = 'https://www.linkedin.com/in/your-profile'; // Replace with your LinkedIn profile URL
+            button.target = '_blank'; // Open in a new tab/window
+            button.rel = "noopener noreferrer";
+
+            const img = document.createElement('img');
+            img.src = "https://via.placeholder.com/50x50/0077B5/FFFFFF?text=LI";  // Replace with your actual linkedin icon
+            img.alt = "LinkedIn";
+
+            button.appendChild(img);
+            button.moveXSpeed = random(-animationSpeed, animationSpeed) * speedRandomnessFactor;
+            button.moveYSpeed = random(-animationSpeed, animationSpeed) * speedRandomnessFactor;
+
+
+            animationContainer.appendChild(button);
+            return button;
+        }
+
 
         function random(min, max) {
             return Math.random() * (max - min) + min;
@@ -102,92 +136,108 @@
             }
         }
 
+        function updateElementPosition(element) {
+            if (!animationRunning) return;
+
+            let currentLeft = parseFloat(element.style.left);
+            let currentTop = parseFloat(element.style.top);
+            let moveXSpeed = element.moveXSpeed;
+            let moveYSpeed = element.moveYSpeed;
+            const size = parseFloat(element.style.width);
+
+             for (const otherElement of [...circles, linkedinButton]) {
+                if (otherElement === element) continue;
+
+                let otherLeft = parseFloat(otherElement.style.left);
+                let otherTop = parseFloat(otherElement.style.top);
+                const otherSize = parseFloat(otherElement.style.width);
+
+                const currentLeftPx = currentLeft / 100 * window.innerWidth;
+                const currentTopPx = currentTop / 100 * window.innerHeight;
+                const otherLeftPx = otherLeft / 100 * window.innerWidth;
+                const otherTopPx = otherTop / 100 * window.innerHeight;
+
+                const dx = otherLeftPx - currentLeftPx;
+                const dy = otherTopPx - currentTopPx;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDistance = (size / 2) + (otherSize / 2);
+
+                if (distance < minDistance) {
+                    const nx = dx / distance;
+                    const ny = dy / distance;
+
+                    const relativeVelocityX = moveXSpeed - otherElement.moveXSpeed;
+                    const relativeVelocityY = moveYSpeed - otherElement.moveYSpeed;
+                    const dotProduct = relativeVelocityX * nx + relativeVelocityY * ny;
+
+                    if (dotProduct < 0) {
+                        const impulse = (2 * dotProduct) / (1 + 1);
+                        moveXSpeed -= impulse * nx;
+                        moveYSpeed -= impulse * ny;
+                        otherElement.moveXSpeed += impulse * nx;
+                        otherElement.moveYSpeed += impulse * ny;
+                    }
+
+                    const overlap = minDistance - distance;
+                    const separationX = nx * overlap * 0.5;
+                    const separationY = ny * overlap * 0.5;
+
+                    currentLeft -= (separationX / window.innerWidth * 100);
+                    currentTop  -= (separationY / window.innerHeight * 100);
+                    otherLeft += (separationX / window.innerWidth * 100);
+                    otherTop  += (separationY / window.innerHeight * 100);
+
+                    otherElement.style.left = `${Math.max(0, Math.min(100 - (otherSize / window.innerWidth * 100), otherLeft))}vw`;
+                    otherElement.style.top = `${Math.max(0, Math.min(100 - (otherSize / window.innerHeight * 100), otherTop))}vh`;
+                }
+            }
+
+
+
+            if (element.isReactive && Date.now() < element.reactiveUntil) {
+                const dx = (mouseX / window.innerWidth * 100) - currentLeft;
+                const dy = (mouseY / window.innerHeight * 100) - currentTop;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < mouseInfluenceRadius && element !== linkedinButton) { // Only apply to circles
+                    const influence = (mouseInfluenceRadius - distance) / mouseInfluenceRadius;
+                    moveXSpeed += (dx / distance) * influence * 0.5 * reactiveSpeedMultiplier * (1 + random(-reactiveSpeedRandomness, reactiveSpeedRandomness));
+                    moveYSpeed += (dy / distance) * influence * 0.5 * reactiveSpeedMultiplier * (1 + random(-reactiveSpeedRandomness, reactiveSpeedRandomness));
+                }
+            }
+            const speedLimit = animationSpeed * (element.isReactive ? 5 * reactiveSpeedMultiplier : 5);
+            moveXSpeed = Math.max(-speedLimit, Math.min(speedLimit, moveXSpeed));
+            moveYSpeed = Math.max(-speedLimit, Math.min(speedLimit, moveYSpeed));
+
+            currentLeft += moveXSpeed;
+            currentTop += moveYSpeed;
+
+
+            if (currentLeft < 0 || currentLeft > 100 - (size / window.innerWidth * 100)) moveXSpeed *= -1;
+            if (currentTop < 0 || currentTop > 100 - (size / window.innerHeight * 100)) moveYSpeed *= -1;
+
+
+            element.moveXSpeed = moveXSpeed;
+            element.moveYSpeed = moveYSpeed;
+
+            element.style.left = `${Math.max(0, Math.min(100 - (size / window.innerWidth * 100), currentLeft))}vw`;
+            element.style.top = `${Math.max(0, Math.min(100 - (size / window.innerHeight * 100), currentTop))}vh`;
+        }
+
+
         function updateCircle(circle) {
             return () => {
-                if (!animationRunning) return;
-
-                let currentLeft = parseFloat(circle.style.left);
-                let currentTop = parseFloat(circle.style.top);
-                let moveXSpeed = circle.moveXSpeed;
-                let moveYSpeed = circle.moveYSpeed;
-                const size = parseFloat(circle.style.width);
-
-                for (const otherCircle of circles) {
-                    if (otherCircle === circle) continue;
-
-                    let otherLeft = parseFloat(otherCircle.style.left);
-                    let otherTop = parseFloat(otherCircle.style.top);
-                    const otherSize = parseFloat(otherCircle.style.width);
-
-                    const currentLeftPx = currentLeft / 100 * window.innerWidth;
-                    const currentTopPx = currentTop / 100 * window.innerHeight;
-                    const otherLeftPx = otherLeft / 100 * window.innerWidth;
-                    const otherTopPx = otherTop / 100 * window.innerHeight;
-
-                    const dx = otherLeftPx - currentLeftPx;
-                    const dy = otherTopPx - currentTopPx;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    const minDistance = (size / 2) + (otherSize / 2);
-
-                    if (distance < minDistance) {
-                        const nx = dx / distance;
-                        const ny = dy / distance;
-
-                        const relativeVelocityX = moveXSpeed - otherCircle.moveXSpeed;
-                        const relativeVelocityY = moveYSpeed - otherCircle.moveYSpeed;
-                        const dotProduct = relativeVelocityX * nx + relativeVelocityY * ny;
-
-                        if (dotProduct < 0) {
-                            const impulse = (2 * dotProduct) / (1 + 1);
-                            moveXSpeed -= impulse * nx;
-                            moveYSpeed -= impulse * ny;
-                            otherCircle.moveXSpeed += impulse * nx;
-                            otherCircle.moveYSpeed += impulse * ny;
-                        }
-
-                        const overlap = minDistance - distance;
-                        const separationX = nx * overlap * 0.5;
-                        const separationY = ny * overlap * 0.5;
-
-                        currentLeft -= (separationX / window.innerWidth * 100);
-                        currentTop  -= (separationY / window.innerHeight * 100);
-                        otherLeft += (separationX / window.innerWidth * 100);
-                        otherTop  += (separationY / window.innerHeight * 100);
-
-                        otherCircle.style.left = `${Math.max(0, Math.min(100 - (otherSize / window.innerWidth * 100), otherLeft))}vw`;
-                        otherCircle.style.top = `${Math.max(0, Math.min(100 - (otherSize / window.innerHeight * 100), otherTop))}vh`;
-                    }
-                }
-
-                if (circle.isReactive && Date.now() < circle.reactiveUntil) {
-                    const dx = (mouseX / window.innerWidth * 100) - currentLeft;
-                    const dy = (mouseY / window.innerHeight * 100) - currentTop;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance < mouseInfluenceRadius) {
-                        const influence = (mouseInfluenceRadius - distance) / mouseInfluenceRadius;
-                        moveXSpeed += (dx / distance) * influence * 0.5 * reactiveSpeedMultiplier * (1 + random(-reactiveSpeedRandomness, reactiveSpeedRandomness));
-                        moveYSpeed += (dy / distance) * influence * 0.5 * reactiveSpeedMultiplier * (1 + random(-reactiveSpeedRandomness, reactiveSpeedRandomness));
-                    }
-                }
-                const speedLimit = animationSpeed * (circle.isReactive ? 5 * reactiveSpeedMultiplier : 5);
-                moveXSpeed = Math.max(-speedLimit, Math.min(speedLimit, moveXSpeed));
-                moveYSpeed = Math.max(-speedLimit, Math.min(speedLimit, moveYSpeed));
-
-                currentLeft += moveXSpeed;
-                currentTop += moveYSpeed;
-
-                if (currentLeft < 0 || currentLeft > 100 - (size / window.innerWidth * 100)) moveXSpeed *= -1;
-                if (currentTop < 0 || currentTop > 100 - (size / window.innerHeight * 100)) moveYSpeed *= -1;
-
-                circle.moveXSpeed = moveXSpeed;
-                circle.moveYSpeed = moveYSpeed;
-
-                circle.style.left = `${Math.max(0, Math.min(100 - (size / window.innerWidth * 100), currentLeft))}vw`;
-                circle.style.top = `${Math.max(0, Math.min(100 - (size / window.innerHeight * 100), currentTop))}vh`;
-
+                updateElementPosition(circle);
                 animationFrameId = requestAnimationFrame(updateCircle(circle));
-            };
+
+            }
+        }
+
+        function updateLinkedinButton() {
+              return () => {
+                updateElementPosition(linkedinButton);
+                animationFrameId = requestAnimationFrame(updateLinkedinButton);
+            }
         }
 
 
@@ -200,6 +250,7 @@
             for (const circle of circles) {
                  animationFrameId = requestAnimationFrame(updateCircle(circle));
             }
+            animationFrameId = requestAnimationFrame(updateLinkedinButton);
             intervalId = setInterval(chooseReactiveCircles, reactiveDuration);
         }
 
@@ -215,14 +266,27 @@
             animationContainer.innerHTML = '';
             circles = [];
 
+            // Calculate dynamic size range based on viewport
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const smallerDimension = Math.min(viewportWidth, viewportHeight);
+
+            const minSizePercentage = 0.05;
+            const maxSizePercentage = 0.15;
+
+            const minCircleSize = smallerDimension * minSizePercentage;
+            const maxCircleSize = smallerDimension * maxSizePercentage;
+            const absoluteMinSize = 20;
+            const adjustedMinCircleSize = Math.max(minCircleSize, absoluteMinSize);
+
+
             for (let i = 0; i < numCircles; i++) {
                 const circle = createCircle();
                 circles.push(circle);
-                // More random initial speeds:
                 circle.moveXSpeed = random(-animationSpeed, animationSpeed) * speedRandomnessFactor;
                 circle.moveYSpeed = random(-animationSpeed, animationSpeed) * speedRandomnessFactor;
 
-                const size = random(minCircleSize, maxCircleSize);
+                const size = random(adjustedMinCircleSize, maxCircleSize);
                 let x = random(0, 100);
                 let y = random(0, 100);
 
@@ -233,6 +297,14 @@
 
                 animationFrameId = requestAnimationFrame(updateCircle(circle));
             }
+            //Linkedin Button creation
+            linkedinButton = createLinkedinButton();
+            linkedinButton.style.width = `${linkedinButtonSize}px`;
+            linkedinButton.style.height = `${linkedinButtonSize}px`;
+            linkedinButton.style.left = `${random(0, 100- (linkedinButtonSize / window.innerWidth * 100))}vw`;
+            linkedinButton.style.top = `${random(0, 100 - (linkedinButtonSize / window.innerHeight * 100))}vh`;
+            animationFrameId = requestAnimationFrame(updateLinkedinButton);
+
 
             chooseReactiveCircles();
             intervalId = setInterval(chooseReactiveCircles, reactiveDuration);
