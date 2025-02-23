@@ -85,7 +85,7 @@
         const INFLUENCE_FACTOR = 0.5;
         const OVERLAP_SEPARATION_FACTOR = 0.5;
         const GRID_CELL_SIZE = 150;
-        const BUTTON_SPEED = 0.5; // Reduced speed
+        const BUTTON_SPEED = 0.5;
 
         let mouseX = -MOUSE_INFLUENCE_RADIUS * 2;
         let mouseY = -MOUSE_INFLUENCE_RADIUS * 2;
@@ -127,15 +127,17 @@
 
             update() {
                 this.handleCollisions();
-                this.handleMouseInfluence(mouseX, mouseY); // Mouse influence *always* applied
+                this.handleMouseInfluence(mouseX, mouseY);
                 this.handleBoundaryCollisions();
                 updateGrid(this);
-                this.updatePosition();
+                // *** CRUCIAL FIX: Update x and y based on speed ***
+                this.x += this.moveXSpeed;
+                this.y += this.moveYSpeed;
+                this.updatePosition(); // *Now* update the visual position
                 if (animationRunning) {
                     requestAnimationFrame(() => this.update());
                 }
             }
-
 
             updateGridPosition() {
                 this.gridX = Math.floor((this.x / 100 * window.innerWidth) / GRID_CELL_SIZE);
@@ -202,7 +204,6 @@
             }
 
             handleMouseInfluence(mouseX, mouseY) {
-                // Apply mouse influence *regardless* of isReactive
                 const dx = (mouseX / window.innerWidth * 100) - this.x;
                 const dy = (mouseY / window.innerHeight * 100) - this.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
@@ -212,9 +213,8 @@
                     this.moveXSpeed += (dx / distance) * influence * INFLUENCE_FACTOR * REACTIVE_SPEED_MULTIPLIER * (1 + random(-REACTIVE_SPEED_RANDOMNESS, REACTIVE_SPEED_RANDOMNESS));
                     this.moveYSpeed += (dy / distance) * influence * INFLUENCE_FACTOR * REACTIVE_SPEED_MULTIPLIER * (1 + random(-REACTIVE_SPEED_RANDOMNESS, REACTIVE_SPEED_RANDOMNESS));
                 }
-                // Limit the speed
-                const speedLimit = ANIMATION_SPEED * (this.isReactive ? 5 * REACTIVE_SPEED_MULTIPLIER : 5);  // Keep existing speed limit logic
 
+                const speedLimit = ANIMATION_SPEED * (this.isReactive ? 5 * REACTIVE_SPEED_MULTIPLIER : 5);
                 this.moveXSpeed = Math.max(-speedLimit, Math.min(speedLimit, this.moveXSpeed));
                 this.moveYSpeed = Math.max(-speedLimit, Math.min(speedLimit, this.moveYSpeed));
             }
@@ -273,6 +273,7 @@
                 this.gridX = Math.floor((this.x / 100 * window.innerWidth) / GRID_CELL_SIZE);
                 this.gridY = Math.floor((this.y / 100 * window.innerHeight) / GRID_CELL_SIZE);
             }
+
 
             handleBoundaryCollisions() {
                 if (this.x < 0 || this.x > 100 - (this.size / window.innerWidth * 100)) {
