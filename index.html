@@ -28,7 +28,7 @@
             opacity: 0.85;
         }
 
-        .social-button { /* Changed class name */
+        .social-button {
             position: absolute;
             border-radius: 5px;
             cursor: pointer;
@@ -77,15 +77,15 @@
         const REACTIVE_SPEED_MULTIPLIER = 0.3;
         const REACTIVE_SPEED_RANDOMNESS = 0.5;
         const SPEED_RANDOMNESS_FACTOR = 2;
-        const SOCIAL_BUTTON_SIZE = 100; // Doubled size
+        const SOCIAL_BUTTON_SIZE = 100;
         const MIN_SIZE_PERCENTAGE = 0.05;
         const MAX_SIZE_PERCENTAGE = 0.15;
         const ABSOLUTE_MIN_SIZE = 20;
         const RESIZE_DEBOUNCE_TIME = 250;
         const INFLUENCE_FACTOR = 0.5;
         const OVERLAP_SEPARATION_FACTOR = 0.5;
-        const GRID_CELL_SIZE = 150; // Adjusted for larger buttons
-        const BUTTON_SPEED = 1; // Medium speed for buttons
+        const GRID_CELL_SIZE = 150;
+        const BUTTON_SPEED = 1;
 
         let mouseX = -MOUSE_INFLUENCE_RADIUS * 2;
         let mouseY = -MOUSE_INFLUENCE_RADIUS * 2;
@@ -94,7 +94,7 @@
         let animationFrameId = null;
         let intervalId = null;
         let linkedinButton = null;
-        let githubButton = null; // Added GitHub button
+        let githubButton = null;
         let resizeTimeout;
         let grid = {};
 
@@ -126,12 +126,12 @@
                 this.element.style.top = `${this.y}vh`;
             }
 
-            update(mouseX, mouseY) {
+            update() {
                 this.handleCollisions();
                 this.handleMouseInfluence(mouseX, mouseY);
                 this.handleBoundaryCollisions();
                 this.updatePosition();
-                this.updateGridPosition();
+                updateGrid(this); // Update the grid
             }
 
              updateGridPosition() {
@@ -142,7 +142,7 @@
             handleCollisions() {
                 const neighbors = getNeighbors(this);
 
-                for (const other of neighbors) { //other can be Circle, or button
+                for (const other of neighbors) {
                     if (other === this) continue;
 
                     let otherLeft = other.x;
@@ -163,9 +163,7 @@
                         const nx = dx / distance;
                         const ny = dy / distance;
 
-                        // Check if the other object is a button
                         if (other instanceof SocialButton) {
-                            // Only update the circle's velocity and position
                             const overlap = minDistance - distance;
                             this.x -= (nx * overlap) / window.innerWidth * 100;
                             this.y -= (ny * overlap) / window.innerHeight * 100;
@@ -173,10 +171,8 @@
                             const dotProduct = this.moveXSpeed * nx + this.moveYSpeed * ny;
                             this.moveXSpeed -= 2 * dotProduct * nx;
                             this.moveYSpeed -= 2 * dotProduct * ny;
-
-                            this.handleBoundaryCollisions(); // Ensure the circle stays within bounds
+                            this.handleBoundaryCollisions();
                         } else {
-                            // Circle-Circle collision (existing logic)
                             const relativeVelocityX = this.moveXSpeed - other.moveXSpeed;
                             const relativeVelocityY = this.moveYSpeed - other.moveYSpeed;
                             const dotProduct = relativeVelocityX * nx + relativeVelocityY * ny;
@@ -199,19 +195,15 @@
                             other.y += (separationY / window.innerHeight * 100);
 
                             other.handleBoundaryCollisions();
-
                         }
                     }
                 }
             }
 
-
-
             handleMouseInfluence(mouseX, mouseY) {
               if (this.isReactive && Date.now() < this.reactiveUntil) {
                     const currentLeft = this.x;
                     const currentTop = this.y;
-
                     const dx = (mouseX / window.innerWidth * 100) - currentLeft;
                     const dy = (mouseY / window.innerHeight * 100) - currentTop;
                     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -226,26 +218,22 @@
                 const speedLimit = ANIMATION_SPEED * (this.isReactive ? 5 * REACTIVE_SPEED_MULTIPLIER : 5);
                 this.moveXSpeed = Math.max(-speedLimit, Math.min(speedLimit, this.moveXSpeed));
                 this.moveYSpeed = Math.max(-speedLimit, Math.min(speedLimit, this.moveYSpeed));
-
             }
 
             handleBoundaryCollisions() {
                 if (this.x < 0 || this.x > 100 - (this.size / window.innerWidth * 100)) this.moveXSpeed *= -1;
                 if (this.y < 0 || this.y > 100 - (this.size / window.innerHeight * 100)) this.moveYSpeed *= -1;
-
-                // Keep within bounds
                 this.x = Math.max(0, Math.min(100 - (this.size / window.innerWidth * 100), this.x));
                 this.y = Math.max(0, Math.min(100 - (this.size / window.innerHeight * 100), this.y));
             }
         }
 
-
         // --- Social Button Class ---
         class SocialButton {
             constructor(x, y, size, moveXSpeed, moveYSpeed, href, imgSrc, imgAlt) {
-                this.x = x; //vw
-                this.y = y; //vh
-                this.size = size; //px
+                this.x = x;
+                this.y = y;
+                this.size = size;
                 this.moveXSpeed = moveXSpeed;
                 this.moveYSpeed = moveYSpeed;
                 this.href = href;
@@ -262,6 +250,8 @@
 
                 this.element.style.width = `${this.size}px`;
                 this.element.style.height = `${this.size}px`;
+                this.gridX = 0; // Add grid coordinates
+                this.gridY = 0;
 
                 this.updatePosition();
                 animationContainer.appendChild(this.element);
@@ -277,21 +267,21 @@
                 this.x += this.moveXSpeed;
                 this.y += this.moveYSpeed;
                 this.updatePosition();
+                updateGrid(this);  // Update the grid
             }
+
 
             handleBoundaryCollisions() {
                 if (this.x < 0 || this.x > 100 - (this.size / window.innerWidth * 100)) {
-                    this.moveXSpeed = -this.moveXSpeed + random(-0.2, 0.2); // Add some randomness
+                    this.moveXSpeed = -this.moveXSpeed + random(-0.2, 0.2);
                 }
                 if (this.y < 0 || this.y > 100 - (this.size / window.innerHeight * 100)) {
-                    this.moveYSpeed = -this.moveYSpeed + random(-0.2, 0.2); // Add some randomness
+                    this.moveYSpeed = -this.moveYSpeed + random(-0.2, 0.2);
                 }
-                // Keep within bounds
                 this.x = Math.max(0, Math.min(100 - (this.size / window.innerWidth * 100), this.x));
                 this.y = Math.max(0, Math.min(100 - (this.size / window.innerHeight * 100), this.y));
             }
         }
-
 
         // --- Helper Functions ---
 
@@ -299,18 +289,17 @@
             return Math.random() * (max - min) + min;
         }
 
-
         // --- Grid-based Spatial Partitioning ---
 
         function clearGrid() {
             grid = {};
         }
 
-        function addToGrid(item) { // Works for circles and buttons
+        function addToGrid(item) {
             const gridX = Math.floor((item.x / 100 * window.innerWidth) / GRID_CELL_SIZE);
             const gridY = Math.floor((item.y / 100 * window.innerHeight) / GRID_CELL_SIZE);
-            item.gridX = gridX; //for the circle
-            item.gridY = gridY; //for the circle
+            item.gridX = gridX;
+            item.gridY = gridY;
 
             if (!grid[gridX]) {
                 grid[gridX] = {};
@@ -321,6 +310,30 @@
             grid[gridX][gridY].push(item);
         }
 
+        // Function to update grid
+        function updateGrid(item) {
+            // Remove item from its old grid position
+            removeFromGrid(item);
+            // Update item's grid position
+            item.updateGridPosition(); //for circle, for buttons it is in-place
+            // Add item to its new grid position
+            addToGrid(item);
+        }
+
+        // Function for removing the item
+        function removeFromGrid(item) {
+            const { gridX, gridY } = item;
+            if (grid[gridX] && grid[gridX][gridY]) {
+                grid[gridX][gridY] = grid[gridX][gridY].filter((otherItem) => otherItem !== item);
+                // Clean up empty grid cells
+                if (grid[gridX][gridY].length === 0) {
+                    delete grid[gridX][gridY];
+                    if (Object.keys(grid[gridX]).length === 0) {
+                        delete grid[gridX];
+                    }
+                }
+            }
+        }
 
         function getNeighbors(item) {
             const gridX = item.gridX;
@@ -338,7 +351,6 @@
         }
 
         // --- Animation Control ---
-
         function chooseReactiveCircles() {
             for (const circle of circles) {
                 circle.isReactive = false;
@@ -353,17 +365,18 @@
             }
         }
 
-
         function startAnimation() {
             if (animationRunning) return;
+
             animationRunning = true;
             controlButton.textContent = 'Stop Animation';
-
+            // Start the animation loops *after* everything is set up
             for (const circle of circles) {
-                 animationFrameId = requestAnimationFrame(() => circle.update(mouseX, mouseY));
+                animationFrameId = requestAnimationFrame(() => circle.update());
             }
-            animationFrameId = requestAnimationFrame(() => linkedinButton.update()); // Update method for buttons
-            animationFrameId = requestAnimationFrame(() => githubButton.update()); // Update method for buttons
+             if(linkedinButton) animationFrameId = requestAnimationFrame(() => linkedinButton.update());//check null
+             if(githubButton) animationFrameId = requestAnimationFrame(() => githubButton.update());//check null
+
             intervalId = setInterval(chooseReactiveCircles, REACTIVE_DURATION);
         }
 
@@ -374,6 +387,7 @@
             cancelAnimationFrame(animationFrameId);
             clearInterval(intervalId);
         }
+
         // --- Main Animation Loop ---
 
         function animateCircles() {
@@ -381,7 +395,7 @@
 
             animationContainer.innerHTML = '';
             circles = [];
-            clearGrid(); // Clear the grid
+            clearGrid();
 
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
@@ -400,51 +414,43 @@
                 const hue = random(180, 240);
                 const circle = new Circle(x, y, size, moveXSpeed, moveYSpeed, hue);
                 circles.push(circle);
-                addToGrid(circle); // Add to grid
-                animationFrameId = requestAnimationFrame(() => circle.update(mouseX, mouseY));
-
+                addToGrid(circle);
             }
-
 
             // Create LinkedIn Button
-            if (!linkedinButton) {
-                const x = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerWidth * 100));
-                const y = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerHeight * 100));
-                linkedinButton = new SocialButton(
-                    x,
-                    y,
-                    SOCIAL_BUTTON_SIZE,
-                    random(-1,1) * BUTTON_SPEED, // Random initial direction
-                    random(-1,1) * BUTTON_SPEED, // Random initial direction
-                    'https://www.linkedin.com/in/jozsefkecskesi/',
-                    "img/linkedin.png", // Make sure this image exists
-                    "LinkedIn"
-                );
-                addToGrid(linkedinButton); // Add to grid
-            }
+            const linkedinX = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerWidth * 100));
+            const linkedinY = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerHeight * 100));
+            linkedinButton = new SocialButton(
+                linkedinX,
+                linkedinY,
+                SOCIAL_BUTTON_SIZE,
+                random(-1, 1) * BUTTON_SPEED,
+                random(-1, 1) * BUTTON_SPEED,
+                'https://www.linkedin.com/in/jozsefkecskesi/',
+                "img/linkedin.png",
+                "LinkedIn"
+            );
+            addToGrid(linkedinButton); // Crucial: Add to grid
 
             // Create GitHub Button
-            if (!githubButton) {
-                const x = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerWidth * 100));
-                const y = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerHeight * 100));
-                githubButton = new SocialButton(
-                    x,
-                    y,
-                    SOCIAL_BUTTON_SIZE,
-                    random(-1,1) * BUTTON_SPEED, // Random initial direction
-                    random(-1,1) * BUTTON_SPEED, // Random initial direction
-                    'https://github.com/jozsefKecskesi', // Replace with your GitHub URL
-                    "img/github.png",       // Make sure this image exists!
-                    "GitHub"
-                );
-                 addToGrid(githubButton); // Add to grid
-            }
+            const githubX = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerWidth * 100));
+            const githubY = random(0, 100 - (SOCIAL_BUTTON_SIZE / window.innerHeight * 100));
+            githubButton = new SocialButton(
+                githubX,
+                githubY,
+                SOCIAL_BUTTON_SIZE,
+                random(-1, 1) * BUTTON_SPEED,
+                random(-1, 1) * BUTTON_SPEED,
+                'https://github.com/jozsefKecskesi',
+                "github.png",
+                "img/GitHub"
+            );
+            addToGrid(githubButton);  // Crucial: Add to grid
 
 
             chooseReactiveCircles();
-            if(animationRunning) intervalId = setInterval(chooseReactiveCircles, REACTIVE_DURATION); //only if runnning
-            animationFrameId = requestAnimationFrame(() => linkedinButton.update());
-            animationFrameId = requestAnimationFrame(() => githubButton.update());
+            if (animationRunning) startAnimation();//call it here, not up there
+
         }
 
         // --- Event Listeners ---
@@ -478,7 +484,9 @@
         });
 
         // --- Initialization ---
-        animateCircles();
+
+        animateCircles(); // Initial setup
+
     </script>
 </body>
 </html>
