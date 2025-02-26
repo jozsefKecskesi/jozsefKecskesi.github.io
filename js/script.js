@@ -3,7 +3,7 @@ const controlButton = document.getElementById('control-button');
 
 // --- Constants ---
 const SOCIAL_BUTTON_SIZE = 100;
-const BUTTON_SPEED = 0.75; // Increased for more noticeable movement
+const BUTTON_SPEED = 0.4; // Increased for more noticeable movement
 const BUTTON_BOUNDARY_RANDOMNESS = 0.1; // Reduced for more predictable bounces
 const OVERLAP_SEPARATION_FACTOR = 0.5;
 const COLLISION_DAMPING = 0.95; // Damping applied after collision (reduced)
