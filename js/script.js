@@ -78,7 +78,6 @@ class SocialButton {
             this.y += this.moveYSpeed;
         }
         this.updatePosition();
-
         if (animationRunning) {
           animationFrameId = requestAnimationFrame(() => this.update()); //Call update in anonymous function
         }
@@ -301,7 +300,6 @@ function updateTextboxPosition() {
   // Update textbox position
   welcomeTextbox.style.left = textboxX + 'px';
   welcomeTextbox.style.top = textboxY + 'px';
-
   if (animationRunning) {
     animationFrameId = requestAnimationFrame(updateTextboxPosition);
   }

@@ -15,7 +15,7 @@ body {
     left: 0;
     width: 100vw;
     height: 100vh;
-    pointer-events: none; 
+    pointer-events: none; /* Important: Allows clicks to pass through */
 }
 
 .social-button {
@@ -39,7 +39,7 @@ body {
 .social-button img {
     max-width: 80%;
     max-height: 80%;
-    display: block; 
+    display: block;
 }
 
 #welcome-textbox {
