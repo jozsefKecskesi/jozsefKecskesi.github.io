@@ -19,8 +19,7 @@ let animationFrameId = null;
 // --- Welcome Textbox ---
 let welcomeTextbox = document.getElementById('welcome-textbox');
 let textboxWidth = 300;  //Fixed px size from css
-let textboxHeight = welcomeTextbox.offsetHeight; //Get dynamically
-
+let textboxHeight = welcomeTextbox ? welcomeTextbox.offsetHeight : 100; //Get dynamically, default if null
 let textboxX = viewportWidth / 2 - textboxWidth / 2; //Initial horizontal center position
 let textboxY = viewportHeight / 2 - textboxHeight / 2; //Initial vertical center position
 
@@ -28,10 +27,10 @@ let textboxMoveXSpeed = 0.05; // Very slow speed
 let textboxMoveYSpeed = 0.03; // Very slow speed
 const TEXTBOX_BOUNDARY_MARGIN = 50;  //Pixels away from edge
 
-// Set initial position
-welcomeTextbox.style.left = textboxX + 'px';
-welcomeTextbox.style.top = textboxY + 'px';
-
+if (welcomeTextbox) {
+    welcomeTextbox.style.left = textboxX + 'px';
+    welcomeTextbox.style.top = textboxY + 'px';
+}
 
 // --- Social Button Class ---
 class SocialButton {
@@ -53,6 +52,7 @@ class SocialButton {
         this.element.appendChild(img);
         this.element.style.width = `${this.size}px`;
         this.element.style.height = `${this.size}px`;
+        this.element.style.position = 'absolute'; // Ensure absolute positioning for clickability
         this.updatePosition();
         animationContainer.appendChild(this.element);
 
@@ -80,7 +80,7 @@ class SocialButton {
         this.updatePosition();
 
         if (animationRunning) {
-            animationFrameId = requestAnimationFrame(() => this.update());
+          animationFrameId = requestAnimationFrame(() => this.update()); //Call update in anonymous function
         }
     }
 
@@ -101,7 +101,6 @@ class SocialButton {
     }
 
     handleButtonCollision(other) {
-        // (Collision logic from previous example remains largely the same)
         const otherLeft = other.x;
         const otherTop = other.y;
         const otherSize = other.size;
@@ -151,42 +150,44 @@ class SocialButton {
         }
     }
 
-    handleCollisions() {
-        if (linkedinButton && this !== linkedinButton) {
-            this.handleButtonCollision(linkedinButton);
-        }
-        if (githubButton && this !== githubButton) {
-            this.handleButtonCollision(githubButton);
-        }
-
-        // Collision with textbox
-        const currentLeftPx = this.x / 100 * viewportWidth;
-        const currentTopPx = this.y / 100 * viewportHeight;
-
-        const dx = textboxX + textboxWidth/2 - currentLeftPx;
-        const dy = textboxY + textboxHeight/2 - currentTopPx;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        const minDistance = (this.size / 2) + (Math.min(textboxWidth, textboxHeight) / 2); //Approximate with circle
-
-        if (distance < minDistance) {
-            //Basic collision handling
-            const nx = dx / distance;
-            const ny = dy / distance;
-            const dotProduct = this.moveXSpeed * nx + this.moveYSpeed * ny;
-
-            this.moveXSpeed -= 2 * dotProduct * nx;
-            this.moveYSpeed -= 2 * dotProduct * ny;
-
-            this.moveXSpeed *= COLLISION_DAMPING;
-            this.moveYSpeed *= COLLISION_DAMPING;
-
-            this.maintainSpeed();
-
-            //Simple overlap resolution
-            this.x -= (nx * (minDistance - distance) / viewportWidth * 100);
-            this.y -= (ny * (minDistance - distance) / viewportHeight * 100);
-        }
+  handleCollisions() {
+    if (linkedinButton && this !== linkedinButton) {
+      this.handleButtonCollision(linkedinButton);
     }
+    if (githubButton && this !== githubButton) {
+      this.handleButtonCollision(githubButton);
+    }
+
+    // Collision with textbox
+    if (!welcomeTextbox) return;  // Exit if textbox doesn't exist
+
+    const currentLeftPx = this.x / 100 * viewportWidth;
+    const currentTopPx = this.y / 100 * viewportHeight;
+
+    const dx = textboxX + textboxWidth / 2 - currentLeftPx;
+    const dy = textboxY + textboxHeight / 2 - currentTopPx;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const minDistance = (this.size / 2) + (Math.min(textboxWidth, textboxHeight) / 2); // Approximate with circle
+
+    if (distance < minDistance) {
+      // Basic collision handling
+      const nx = dx / distance;
+      const ny = dy / distance;
+      const dotProduct = this.moveXSpeed * nx + this.moveYSpeed * ny;
+
+      this.moveXSpeed -= 2 * dotProduct * nx;
+      this.moveYSpeed -= 2 * dotProduct * ny;
+
+      this.moveXSpeed *= COLLISION_DAMPING;
+      this.moveYSpeed *= COLLISION_DAMPING;
+
+      this.maintainSpeed();
+
+      // Simple overlap resolution
+      this.x -= (nx * (minDistance - distance) / viewportWidth * 100);
+      this.y -= (ny * (minDistance - distance) / viewportHeight * 100);
+    }
+  }
 
     maintainSpeed() {
         const currentSpeed = Math.sqrt(this.moveXSpeed * this.moveXSpeed + this.moveYSpeed * this.moveYSpeed);
@@ -224,11 +225,11 @@ function stopAnimation() {
 }
 
 function startAnimation() {
-    if (animationRunning) return;
-    animationRunning = true;
-    linkedinButton.update();
-    githubButton.update();
-    updateTextboxPosition(); // Start updating textbox
+  if (animationRunning) return;
+  animationRunning = true;
+  if(linkedinButton) linkedinButton.update();
+  if(githubButton) githubButton.update();
+  updateTextboxPosition(); // Start updating textbox
 }
 
 // --- Main Animation Loop ---
@@ -272,40 +273,39 @@ function animateButtons() {
 }
 
 //Textbox movement and edge bouncing
-
 function updateTextboxPosition() {
-    // Move the textbox
-    textboxX += textboxMoveXSpeed;
-    textboxY += textboxMoveYSpeed;
+  if (!welcomeTextbox) return; // Don't run if textbox is missing
 
+  // Move the textbox
+  textboxX += textboxMoveXSpeed;
+  textboxY += textboxMoveYSpeed;
 
-    // Handle boundary collisions
-    if (textboxX < TEXTBOX_BOUNDARY_MARGIN) {
-        textboxMoveXSpeed = Math.abs(textboxMoveXSpeed);  // Reverse direction
-        textboxX = TEXTBOX_BOUNDARY_MARGIN;
-    }
-    if (textboxX + textboxWidth > viewportWidth - TEXTBOX_BOUNDARY_MARGIN) {
-        textboxMoveXSpeed = -Math.abs(textboxMoveXSpeed); // Reverse direction
-        textboxX = viewportWidth - textboxWidth - TEXTBOX_BOUNDARY_MARGIN;
-    }
-    if (textboxY < TEXTBOX_BOUNDARY_MARGIN) {
-        textboxMoveYSpeed = Math.abs(textboxMoveYSpeed);  // Reverse direction
-        textboxY = TEXTBOX_BOUNDARY_MARGIN;
-    }
-    if (textboxY + textboxHeight > viewportHeight - TEXTBOX_BOUNDARY_MARGIN) {
-        textboxMoveYSpeed = -Math.abs(textboxMoveYSpeed); // Reverse direction
-        textboxY = viewportHeight - textboxHeight - TEXTBOX_BOUNDARY_MARGIN;
-    }
+  // Handle boundary collisions
+  if (textboxX < TEXTBOX_BOUNDARY_MARGIN) {
+    textboxMoveXSpeed = Math.abs(textboxMoveXSpeed); // Reverse direction
+    textboxX = TEXTBOX_BOUNDARY_MARGIN;
+  }
+  if (textboxX + textboxWidth > viewportWidth - TEXTBOX_BOUNDARY_MARGIN) {
+    textboxMoveXSpeed = -Math.abs(textboxMoveXSpeed); // Reverse direction
+    textboxX = viewportWidth - textboxWidth - TEXTBOX_BOUNDARY_MARGIN;
+  }
+  if (textboxY < TEXTBOX_BOUNDARY_MARGIN) {
+    textboxMoveYSpeed = Math.abs(textboxMoveYSpeed); // Reverse direction
+    textboxY = TEXTBOX_BOUNDARY_MARGIN;
+  }
+  if (textboxY + textboxHeight > viewportHeight - TEXTBOX_BOUNDARY_MARGIN) {
+    textboxMoveYSpeed = -Math.abs(textboxMoveYSpeed); // Reverse direction
+    textboxY = viewportHeight - textboxHeight - TEXTBOX_BOUNDARY_MARGIN;
+  }
 
-    // Update textbox position
-    welcomeTextbox.style.left = textboxX + 'px';
-    welcomeTextbox.style.top = textboxY + 'px';
+  // Update textbox position
+  welcomeTextbox.style.left = textboxX + 'px';
+  welcomeTextbox.style.top = textboxY + 'px';
 
-    if (animationRunning) {
-        requestAnimationFrame(updateTextboxPosition);
-    }
+  if (animationRunning) {
+    animationFrameId = requestAnimationFrame(updateTextboxPosition);
+  }
 }
-
 
 // --- Event Listeners ---
 window.addEventListener('resize', () => {
@@ -315,8 +315,11 @@ window.addEventListener('resize', () => {
     animateButtons();
     textboxX = viewportWidth / 2 - textboxWidth / 2; //Reset position
     textboxY = viewportHeight / 2 - textboxHeight / 2;
-    welcomeTextbox.style.left = textboxX + 'px';
-    welcomeTextbox.style.top = textboxY + 'px';
+
+    if(welcomeTextbox) {
+        welcomeTextbox.style.left = textboxX + 'px';
+        welcomeTextbox.style.top = textboxY + 'px';
+    }
     startAnimation();
 });
 
