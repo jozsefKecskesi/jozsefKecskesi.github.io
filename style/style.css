@@ -57,3 +57,52 @@ body {
     border-radius: 50%; /* Make them circles */
     /* Add other styling as desired */
 }
+
+.circle {
+    position: absolute;
+    border-radius: 50%;
+    /* Add other styling as desired */
+}
+
+.social-button {
+    position: absolute;
+    /* Add other styling as desired */
+}
+
+/* Basic styling for the bouncing objects */
+.bouncing-object {
+    position: absolute;
+    /* Add other styling as desired */
+    background-color: red;  /* Default color, will be overridden by JS */
+    width: 50px;
+    height: 50px;
+}
+
+/* 3D-ish styling (adjust as needed) */
+.cube {
+    width: 50px;
+    height: 50px;
+    transform: rotateX(45deg) rotateY(45deg);
+}
+
+.sphere {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(to bottom right, #ddd, #333); /* Example shading */
+}
+
+.cylinder {
+    width: 30px;
+    height: 60px;
+    border-radius: 15px;
+    background: linear-gradient(to right, #888, #555);
+}
+
+.cone {
+  width: 0;
+  height: 0;
+  border-left: 25px solid transparent;
+  border-right: 25px solid transparent;
+  border-bottom: 50px solid red; /* Or whatever color */
+}

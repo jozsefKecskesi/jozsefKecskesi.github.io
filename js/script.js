@@ -2,8 +2,8 @@ const animationContainer = document.getElementById('animation-container');
 const controlButton = document.getElementById('control-button');
 
 // --- Constants ---
-const NUM_CIRCLES = 25;
-const NUM_BOUNCING_CIRCLES = 5; // Number of bouncing circles
+const NUM_CIRCLES = 5;
+const NUM_BOUNCING_OBJECTS = 5; // Number of bouncing objects
 const ANIMATION_SPEED = 0.1;
 const MOUSE_INFLUENCE_RADIUS = 100;
 const REACTIVE_PERCENTAGE = 0.1;
@@ -12,7 +12,7 @@ const REACTIVE_SPEED_MULTIPLIER = 0.3;
 const REACTIVE_SPEED_RANDOMNESS = 0.5;
 const SPEED_RANDOMNESS_FACTOR = 2;
 const SOCIAL_BUTTON_SIZE = 100;
-const BOUNCING_CIRCLE_SIZE = 50; // Default size for bouncing circles
+const BOUNCING_OBJECT_SIZE = 50; // Default size for bouncing objects
 const MIN_SIZE_PERCENTAGE = 0.05;
 const MAX_SIZE_PERCENTAGE = 0.15;
 const ABSOLUTE_MIN_SIZE = 20;
@@ -21,20 +21,23 @@ const INFLUENCE_FACTOR = 0.5;
 const OVERLAP_SEPARATION_FACTOR = 0.5;
 const GRID_CELL_SIZE = 150;
 const BUTTON_SPEED = 0.5;
-const CIRCLE_SPEED = 0.75; // Speed of the bouncing circles
+const OBJECT_SPEED = 0.75; // Speed of the bouncing objects
 const SOCIAL_BUTTON_MARGIN = SOCIAL_BUTTON_SIZE * 1.1;
 const SPEED_LIMIT_MULTIPLIER = 5;
 const BUTTON_BOUNDARY_RANDOMNESS = 0.2;
-const CIRCLE_BOUNDARY_RANDOMNESS = 0.3; // Boundary Randomness Factor for Bouncing Circles
+const OBJECT_BOUNDARY_RANDOMNESS = 0.3; // Boundary Randomness Factor for Bouncing Objects
 const SPREAD_FORCE_CONSTANT = 10; // Constant for distance-based spread force
 const EDGE_REPULSION_FORCE = 0.5; // Strength of edge repulsion
 const EDGE_REPULSION_DISTANCE = 100; // Distance from edge where repulsion starts
 const DAMPING_FACTOR = 0.995; // Damping factor, applied each frame
 
+// Possible 3D object shapes
+const OBJECT_SHAPES = ['cube', 'sphere', 'cylinder', 'cone']; // add or remove what you want
+
 let mouseX = -MOUSE_INFLUENCE_RADIUS * 2;
 let mouseY = -MOUSE_INFLUENCE_RADIUS * 2;
 let circles = [];
-let bouncingCircles = []; // Array to hold bouncing circles
+let bouncingObjects = []; // Array to hold bouncing objects
 let animationRunning = false; //  set to false initially
 let intervalId = null;
 let linkedinButton = null;
@@ -176,8 +179,8 @@ class Circle {
 
             if (other instanceof SocialButton) {
                 this.handleButtonCollision(other);
-            } else if (other instanceof BouncingCircle) {
-                this.handleButtonCollision(other); // Treat collision with bouncing circles the same way
+            } else if (other instanceof BouncingObject) {
+                this.handleButtonCollision(other); // Treat collision with bouncing objects the same way
             }
             else {
                 this.handleCircleCollision(other);
@@ -254,18 +257,19 @@ class Circle {
     }
 }
 
-// --- Bouncing Circle Class ---
-class BouncingCircle {
-    constructor(x, y, size, moveXSpeed, moveYSpeed, hue) {
+// --- Bouncing Object Class ---
+class BouncingObject {
+    constructor(x, y, size, moveXSpeed, moveYSpeed, color, shape) {
         this.x = x;
         this.y = y;
         this.size = size;
         this.moveXSpeed = moveXSpeed;
         this.moveYSpeed = moveYSpeed;
-        this.hue = hue;
+        this.color = color;
+        this.shape = shape;
         this.element = document.createElement('div');
-        this.element.classList.add('bouncing-circle'); // Use a different class for styling
-        this.element.style.backgroundColor = `hsl(${this.hue}, 100%, 50%)`;
+        this.element.classList.add('bouncing-object', shape); // Add shape as a class
+        this.element.style.backgroundColor = color;
         this.element.style.width = `${this.size}px`;
         this.element.style.height = `${this.size}px`;
         this.gridX = 0;
@@ -281,7 +285,7 @@ class BouncingCircle {
 
     update() {
         this.handleBoundaryCollisions();
-        this.handleCollisions(); // Enable collisions with circles
+        this.handleCollisions();
         this.x += this.moveXSpeed;
         this.y += this.moveYSpeed;
         updateGrid(this);
@@ -299,16 +303,15 @@ class BouncingCircle {
 
     handleBoundaryCollisions() {
         if (this.x < 0 || this.x > 100 - (this.size / viewportWidth * 100)) {
-            this.moveXSpeed = -this.moveXSpeed + random(-CIRCLE_BOUNDARY_RANDOMNESS, CIRCLE_BOUNDARY_RANDOMNESS);
+            this.moveXSpeed = -this.moveXSpeed + random(-OBJECT_BOUNDARY_RANDOMNESS, OBJECT_BOUNDARY_RANDOMNESS);
         }
         if (this.y < 0 || this.y > 100 - (this.size / viewportHeight * 100)) {
-            this.moveYSpeed = -this.moveYSpeed + random(-CIRCLE_BOUNDARY_RANDOMNESS, CIRCLE_BOUNDARY_RANDOMNESS);
+            this.moveYSpeed = -this.moveYSpeed + random(-OBJECT_BOUNDARY_RANDOMNESS, OBJECT_BOUNDARY_RANDOMNESS);
         }
 
         this.x = Math.max(0, Math.min(100 - (this.size / viewportWidth * 100), this.x));
         this.y = Math.max(0, Math.min(100 - (this.size / viewportHeight * 100), this.y));
     }
-
 
     handleCircleCollision(other) {
         const otherLeft = other.x;
@@ -342,7 +345,7 @@ class BouncingCircle {
             }
 
             const overlap = minDistance - distance;
-             const separationX = nx * overlap * OVERLAP_SEPARATION_FACTOR;
+            const separationX = nx * overlap * OVERLAP_SEPARATION_FACTOR;
             const separationY = ny * overlap * OVERLAP_SEPARATION_FACTOR;
 
             this.x += (separationX / viewportWidth * 100);
@@ -352,6 +355,7 @@ class BouncingCircle {
             other.handleBoundaryCollisions();
         }
     }
+
      handleCollisions() {
         const neighbors = getNeighbors(this);
 
@@ -364,7 +368,7 @@ class BouncingCircle {
            else if (other instanceof Circle) {
                 this.handleCircleCollision(other);
             }
-             else if (other instanceof BouncingCircle) {
+             else if (other instanceof BouncingObject) {
                 this.handleCircleCollision(other);
             }
         }
@@ -480,7 +484,7 @@ class SocialButton {
 
         for (const other of neighbors) {
             if (other === this) continue;
-             if (other instanceof BouncingCircle) {
+             if (other instanceof BouncingObject) {
                 this.handleCircleCollision(other);
             }
            else if (other instanceof Circle) {
@@ -567,8 +571,8 @@ function startAnimation() {
     for (const circle of circles) {
         circle.update();
     }
-     for (const bCircle of bouncingCircles) {
-        bCircle.update();
+     for (const bObject of bouncingObjects) {
+        bObject.update();
     }
     if (linkedinButton) linkedinButton.update();
     if (githubButton) githubButton.update();
@@ -589,7 +593,7 @@ function animateCircles() {
 
     animationContainer.innerHTML = '';
     circles = [];
-    bouncingCircles = []; // Clear bouncing circles
+    bouncingObjects = []; // Clear bouncing objects
     clearGrid();
 
     const smallerDimension = Math.min(viewportWidth, viewportHeight);
@@ -597,7 +601,7 @@ function animateCircles() {
     const maxCircleSize = smallerDimension * MAX_SIZE_PERCENTAGE;
     const adjustedMinCircleSize = Math.max(minCircleSize, ABSOLUTE_MIN_SIZE);
 
-    for (let i = 0; i < NUM_CIRCLES - NUM_BOUNCING_CIRCLES; i++) {
+    for (let i = 0; i < NUM_CIRCLES - NUM_BOUNCING_OBJECTS; i++) {
         const size = random(adjustedMinCircleSize, maxCircleSize);
         const x = random(0, 100 - (size / viewportWidth * 100));
         const y = random(0, 100 - (size / viewportHeight * 100));
@@ -609,16 +613,17 @@ function animateCircles() {
         addToGrid(circle);
     }
 
-    // Create bouncing circles
-    for (let i = 0; i < NUM_BOUNCING_CIRCLES; i++) {
-        const x = random(0, 100 - (BOUNCING_CIRCLE_SIZE / viewportWidth * 100));
-        const y = random(0, 100 - (BOUNCING_CIRCLE_SIZE / viewportHeight * 100));
-        const moveXSpeed = random(-1, 1) * CIRCLE_SPEED;
-        const moveYSpeed = random(-1, 1) * CIRCLE_SPEED;
-        const hue = random(0, 360); // Different hue range for distinction
-        const bCircle = new BouncingCircle(x, y, BOUNCING_CIRCLE_SIZE, moveXSpeed, moveYSpeed, hue);
-        bouncingCircles.push(bCircle);
-        addToGrid(bCircle);
+    // Create bouncing objects
+    for (let i = 0; i < NUM_BOUNCING_OBJECTS; i++) {
+        const x = random(0, 100 - (BOUNCING_OBJECT_SIZE / viewportWidth * 100));
+        const y = random(0, 100 - (BOUNCING_OBJECT_SIZE / viewportHeight * 100));
+        const moveXSpeed = random(-1, 1) * OBJECT_SPEED;
+        const moveYSpeed = random(-1, 1) * OBJECT_SPEED;
+        const color = `hsl(${random(0, 360)}, 100%, 50%)`; // Random color
+        const shape = OBJECT_SHAPES[Math.floor(Math.random() * OBJECT_SHAPES.length)]; // Random shape
+        const bObject = new BouncingObject(x, y, BOUNCING_OBJECT_SIZE, moveXSpeed, moveYSpeed, color, shape);
+        bouncingObjects.push(bObject);
+        addToGrid(bObject);
     }
 
     // Ensure social buttons don't spawn too close to the edges
