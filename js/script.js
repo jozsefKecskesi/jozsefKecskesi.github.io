@@ -12,25 +12,25 @@ const REACTIVE_SPEED_MULTIPLIER = 0.3;
 const REACTIVE_SPEED_RANDOMNESS = 0.5;
 const SPEED_RANDOMNESS_FACTOR = 2;
 const SOCIAL_BUTTON_SIZE = 100;
-const BOUNCING_OBJECT_SIZE = 150; // Default size for bouncing objects
+const BOUNCING_OBJECT_SIZE = 80; // Default size for bouncing objects
 const MIN_SIZE_PERCENTAGE = 0.05;
 const MAX_SIZE_PERCENTAGE = 0.15;
 const ABSOLUTE_MIN_SIZE = 20;
 const RESIZE_DEBOUNCE_TIME = 250;
 const INFLUENCE_FACTOR = 0.5;
-const OVERLAP_SEPARATION_FACTOR = 1.0; // Increased separation
+const OVERLAP_SEPARATION_FACTOR = 0.5; // Reduced separation for smoother effect
 const GRID_CELL_SIZE = 150;
 const BUTTON_SPEED = 0.5;
 const OBJECT_SPEED = 0.75; // Speed of the bouncing objects
 const SOCIAL_BUTTON_MARGIN = SOCIAL_BUTTON_SIZE * 1.1;
 const SPEED_LIMIT_MULTIPLIER = 5;
 const BUTTON_BOUNDARY_RANDOMNESS = 0.2;
-const OBJECT_BOUNDARY_RANDOMNESS = 0.3; // Boundary Randomness Factor for Bouncing Objects
+const OBJECT_BOUNDARY_RANDOMNESS = 0.1; // Boundary Randomness Factor for Bouncing Objects (reduced)
 const SPREAD_FORCE_CONSTANT = 10; // Constant for distance-based spread force
 const EDGE_REPULSION_FORCE = 0.5; // Strength of edge repulsion
 const EDGE_REPULSION_DISTANCE = 100; // Distance from edge where repulsion starts
 const DAMPING_FACTOR = 0.995; // Damping factor, applied each frame
-const COLLISION_DAMPING = 0.8; // Damping applied after collision
+const COLLISION_DAMPING = 0.95; // Damping applied after collision (reduced)
 
 // Possible 3D object shapes
 const OBJECT_SHAPES = ['cube', 'sphere', 'cylinder', 'cone']; // add or remove what you want
@@ -678,8 +678,6 @@ function animateCircles() {
     }
 
     chooseReactiveCircles();
-    //if (animationRunning) startAnimation(); //remove if statement
-    startAnimation(); //call it unconditionally to start on load.
 }
 
 // --- Event Listeners ---
@@ -706,9 +704,11 @@ window.addEventListener('resize', () => {
         if (animationRunning) {
             stopAnimation();
             animateCircles();
+             startAnimation(); // Restart after resizing
         }
     }, RESIZE_DEBOUNCE_TIME);
 });
 
 // --- Initialization ---
 animateCircles();
+startAnimation();
