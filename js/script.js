@@ -2,9 +2,9 @@ const animationContainer = document.getElementById('animation-container');
 const controlButton = document.getElementById('control-button');
 
 // --- Constants ---
-const NUM_CIRCLES = 25;
-const ANIMATION_SPEED = 0.1;
-const MOUSE_INFLUENCE_RADIUS = 100;
+const NUM_CIRCLES = 5;
+const ANIMATION_SPEED = 0.05;
+const MOUSE_INFLUENCE_RADIUS = 200;
 const REACTIVE_PERCENTAGE = 0.1;
 const REACTIVE_DURATION = 2000;
 const REACTIVE_SPEED_MULTIPLIER = 0.3;
@@ -30,7 +30,7 @@ const DAMPING_FACTOR = 0.995; // Damping factor, applied each frame
 let mouseX = -MOUSE_INFLUENCE_RADIUS * 2;
 let mouseY = -MOUSE_INFLUENCE_RADIUS * 2;
 let circles = [];
-let animationRunning = true;
+let animationRunning = false; //  set to false initially
 let intervalId = null;
 let linkedinButton = null;
 let githubButton = null;
@@ -455,7 +455,8 @@ function animateCircles() {
     }
 
     chooseReactiveCircles();
-    if (animationRunning) startAnimation();
+    //if (animationRunning) startAnimation(); //remove if statement
+    startAnimation(); //call it unconditionally to start on load.
 }
 
 // --- Event Listeners ---
