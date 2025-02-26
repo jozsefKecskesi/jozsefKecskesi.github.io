@@ -2,15 +2,17 @@ const animationContainer = document.getElementById('animation-container');
 const controlButton = document.getElementById('control-button');
 
 // --- Constants ---
-const NUM_CIRCLES = 5;
-const ANIMATION_SPEED = 0.05;
-const MOUSE_INFLUENCE_RADIUS = 200;
+const NUM_CIRCLES = 25;
+const NUM_BOUNCING_CIRCLES = 5; // Number of bouncing circles
+const ANIMATION_SPEED = 0.1;
+const MOUSE_INFLUENCE_RADIUS = 100;
 const REACTIVE_PERCENTAGE = 0.1;
 const REACTIVE_DURATION = 2000;
 const REACTIVE_SPEED_MULTIPLIER = 0.3;
 const REACTIVE_SPEED_RANDOMNESS = 0.5;
 const SPEED_RANDOMNESS_FACTOR = 2;
 const SOCIAL_BUTTON_SIZE = 100;
+const BOUNCING_CIRCLE_SIZE = 50; // Default size for bouncing circles
 const MIN_SIZE_PERCENTAGE = 0.05;
 const MAX_SIZE_PERCENTAGE = 0.15;
 const ABSOLUTE_MIN_SIZE = 20;
@@ -19,9 +21,11 @@ const INFLUENCE_FACTOR = 0.5;
 const OVERLAP_SEPARATION_FACTOR = 0.5;
 const GRID_CELL_SIZE = 150;
 const BUTTON_SPEED = 0.5;
+const CIRCLE_SPEED = 0.75; // Speed of the bouncing circles
 const SOCIAL_BUTTON_MARGIN = SOCIAL_BUTTON_SIZE * 1.1;
 const SPEED_LIMIT_MULTIPLIER = 5;
 const BUTTON_BOUNDARY_RANDOMNESS = 0.2;
+const CIRCLE_BOUNDARY_RANDOMNESS = 0.3; // Boundary Randomness Factor for Bouncing Circles
 const SPREAD_FORCE_CONSTANT = 10; // Constant for distance-based spread force
 const EDGE_REPULSION_FORCE = 0.5; // Strength of edge repulsion
 const EDGE_REPULSION_DISTANCE = 100; // Distance from edge where repulsion starts
@@ -30,6 +34,7 @@ const DAMPING_FACTOR = 0.995; // Damping factor, applied each frame
 let mouseX = -MOUSE_INFLUENCE_RADIUS * 2;
 let mouseY = -MOUSE_INFLUENCE_RADIUS * 2;
 let circles = [];
+let bouncingCircles = []; // Array to hold bouncing circles
 let animationRunning = false; //  set to false initially
 let intervalId = null;
 let linkedinButton = null;
@@ -171,7 +176,10 @@ class Circle {
 
             if (other instanceof SocialButton) {
                 this.handleButtonCollision(other);
-            } else {
+            } else if (other instanceof BouncingCircle) {
+                this.handleButtonCollision(other); // Treat collision with bouncing circles the same way
+            }
+            else {
                 this.handleCircleCollision(other);
             }
         }
@@ -246,6 +254,123 @@ class Circle {
     }
 }
 
+// --- Bouncing Circle Class ---
+class BouncingCircle {
+    constructor(x, y, size, moveXSpeed, moveYSpeed, hue) {
+        this.x = x;
+        this.y = y;
+        this.size = size;
+        this.moveXSpeed = moveXSpeed;
+        this.moveYSpeed = moveYSpeed;
+        this.hue = hue;
+        this.element = document.createElement('div');
+        this.element.classList.add('bouncing-circle'); // Use a different class for styling
+        this.element.style.backgroundColor = `hsl(${this.hue}, 100%, 50%)`;
+        this.element.style.width = `${this.size}px`;
+        this.element.style.height = `${this.size}px`;
+        this.gridX = 0;
+        this.gridY = 0;
+        this.updatePosition();
+        animationContainer.appendChild(this.element);
+    }
+
+    updatePosition() {
+        this.element.style.left = `${this.x}vw`;
+        this.element.style.top = `${this.y}vh`;
+    }
+
+    update() {
+        this.handleBoundaryCollisions();
+        this.handleCollisions(); // Enable collisions with circles
+        this.x += this.moveXSpeed;
+        this.y += this.moveYSpeed;
+        updateGrid(this);
+        this.updatePosition();
+
+        if (animationRunning) {
+            requestAnimationFrame(() => this.update());
+        }
+    }
+
+    updateGridPosition() {
+        this.gridX = Math.floor((this.x / 100 * viewportWidth) / GRID_CELL_SIZE);
+        this.gridY = Math.floor((this.y / 100 * viewportHeight) / GRID_CELL_SIZE);
+    }
+
+    handleBoundaryCollisions() {
+        if (this.x < 0 || this.x > 100 - (this.size / viewportWidth * 100)) {
+            this.moveXSpeed = -this.moveXSpeed + random(-CIRCLE_BOUNDARY_RANDOMNESS, CIRCLE_BOUNDARY_RANDOMNESS);
+        }
+        if (this.y < 0 || this.y > 100 - (this.size / viewportHeight * 100)) {
+            this.moveYSpeed = -this.moveYSpeed + random(-CIRCLE_BOUNDARY_RANDOMNESS, CIRCLE_BOUNDARY_RANDOMNESS);
+        }
+
+        this.x = Math.max(0, Math.min(100 - (this.size / viewportWidth * 100), this.x));
+        this.y = Math.max(0, Math.min(100 - (this.size / viewportHeight * 100), this.y));
+    }
+
+
+    handleCircleCollision(other) {
+        const otherLeft = other.x;
+        const otherTop = other.y;
+        const otherSize = other.size;
+
+        const currentLeftPx = this.x / 100 * viewportWidth;
+        const currentTopPx = this.y / 100 * viewportHeight;
+        const otherLeftPx = otherLeft / 100 * viewportWidth;
+        const otherTopPx = otherTop / 100 * viewportHeight;
+
+        const dx = otherLeftPx - currentLeftPx;
+        const dy = otherTopPx - currentTopPx;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const minDistance = (this.size / 2) + (otherSize / 2);
+
+        if (distance < minDistance) {
+            const nx = dx / distance;
+            const ny = dy / distance;
+
+            const relativeVelocityX = this.moveXSpeed - other.moveXSpeed;
+            const relativeVelocityY = this.moveYSpeed - other.moveYSpeed;
+            const dotProduct = relativeVelocityX * nx + relativeVelocityY * ny;
+
+            if (dotProduct < 0) {
+                const impulse = (2 * dotProduct) / (1 + 1);
+                this.moveXSpeed -= impulse * nx;
+                this.moveYSpeed -= impulse * ny;
+                other.moveXSpeed += impulse * nx;
+                other.moveYSpeed += impulse * ny;
+            }
+
+            const overlap = minDistance - distance;
+             const separationX = nx * overlap * OVERLAP_SEPARATION_FACTOR;
+            const separationY = ny * overlap * OVERLAP_SEPARATION_FACTOR;
+
+            this.x += (separationX / viewportWidth * 100);
+            this.y += (separationY / viewportHeight * 100);
+            other.x -= (separationX / viewportWidth * 100);
+            other.y -= (separationY / viewportHeight * 100);
+            other.handleBoundaryCollisions();
+        }
+    }
+     handleCollisions() {
+        const neighbors = getNeighbors(this);
+
+        for (const other of neighbors) {
+            if (other === this) continue;
+
+            if (other instanceof SocialButton) {
+                this.handleCircleCollision(other);
+            }
+           else if (other instanceof Circle) {
+                this.handleCircleCollision(other);
+            }
+             else if (other instanceof BouncingCircle) {
+                this.handleCircleCollision(other);
+            }
+        }
+    }
+}
+
 // --- Social Button Class ---
 class SocialButton {
     constructor(x, y, size, moveXSpeed, moveYSpeed, href, imgSrc, imgAlt) {
@@ -279,10 +404,12 @@ class SocialButton {
 
     update() {
         this.handleBoundaryCollisions();
+        this.handleCollisions(); // Enable collisions with circles
         this.x += this.moveXSpeed;
         this.y += this.moveYSpeed;
         updateGrid(this);
         this.updatePosition();
+
         if (animationRunning) {
             requestAnimationFrame(() => this.update());
         }
@@ -293,7 +420,6 @@ class SocialButton {
         this.gridY = Math.floor((this.y / 100 * viewportHeight) / GRID_CELL_SIZE);
     }
 
-
     handleBoundaryCollisions() {
         if (this.x < 0 || this.x > 100 - (this.size / viewportWidth * 100)) {
             this.moveXSpeed = -this.moveXSpeed + random(-BUTTON_BOUNDARY_RANDOMNESS, BUTTON_BOUNDARY_RANDOMNESS);
@@ -301,8 +427,66 @@ class SocialButton {
         if (this.y < 0 || this.y > 100 - (this.size / viewportHeight * 100)) {
             this.moveYSpeed = -this.moveYSpeed + random(-BUTTON_BOUNDARY_RANDOMNESS, BUTTON_BOUNDARY_RANDOMNESS);
         }
+
         this.x = Math.max(0, Math.min(100 - (this.size / viewportWidth * 100), this.x));
         this.y = Math.max(0, Math.min(100 - (this.size / viewportHeight * 100), this.y));
+    }
+
+    handleCircleCollision(other) {
+        const otherLeft = other.x;
+        const otherTop = other.y;
+        const otherSize = other.size;
+
+        const currentLeftPx = this.x / 100 * viewportWidth;
+        const currentTopPx = this.y / 100 * viewportHeight;
+        const otherLeftPx = otherLeft / 100 * viewportWidth;
+        const otherTopPx = otherTop / 100 * viewportHeight;
+
+        const dx = otherLeftPx - currentLeftPx;
+        const dy = otherTopPx - currentTopPx;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const minDistance = (this.size / 2) + (otherSize / 2);
+
+        if (distance < minDistance) {
+            const nx = dx / distance;
+            const ny = dy / distance;
+
+            const relativeVelocityX = this.moveXSpeed - other.moveXSpeed;
+            const relativeVelocityY = this.moveYSpeed - other.moveYSpeed;
+            const dotProduct = relativeVelocityX * nx + relativeVelocityY * ny;
+
+            if (dotProduct < 0) {
+                const impulse = (2 * dotProduct) / (1 + 1);
+                this.moveXSpeed -= impulse * nx;
+                this.moveYSpeed -= impulse * ny;
+                other.moveXSpeed += impulse * nx;
+                other.moveYSpeed += impulse * ny;
+            }
+
+            const overlap = minDistance - distance;
+            const separationX = nx * overlap * OVERLAP_SEPARATION_FACTOR;
+            const separationY = ny * overlap * OVERLAP_SEPARATION_FACTOR;
+
+            this.x += (separationX / viewportWidth * 100);
+            this.y += (separationY / viewportHeight * 100);
+            other.x -= (separationX / viewportWidth * 100);
+            other.y -= (separationY / viewportHeight * 100);
+            other.handleBoundaryCollisions();
+        }
+    }
+
+     handleCollisions() {
+        const neighbors = getNeighbors(this);
+
+        for (const other of neighbors) {
+            if (other === this) continue;
+             if (other instanceof BouncingCircle) {
+                this.handleCircleCollision(other);
+            }
+           else if (other instanceof Circle) {
+                this.handleCircleCollision(other);
+            }
+        }
     }
 }
 
@@ -383,6 +567,9 @@ function startAnimation() {
     for (const circle of circles) {
         circle.update();
     }
+     for (const bCircle of bouncingCircles) {
+        bCircle.update();
+    }
     if (linkedinButton) linkedinButton.update();
     if (githubButton) githubButton.update();
     intervalId = setInterval(chooseReactiveCircles, REACTIVE_DURATION);
@@ -402,6 +589,7 @@ function animateCircles() {
 
     animationContainer.innerHTML = '';
     circles = [];
+    bouncingCircles = []; // Clear bouncing circles
     clearGrid();
 
     const smallerDimension = Math.min(viewportWidth, viewportHeight);
@@ -409,7 +597,7 @@ function animateCircles() {
     const maxCircleSize = smallerDimension * MAX_SIZE_PERCENTAGE;
     const adjustedMinCircleSize = Math.max(minCircleSize, ABSOLUTE_MIN_SIZE);
 
-    for (let i = 0; i < NUM_CIRCLES; i++) {
+    for (let i = 0; i < NUM_CIRCLES - NUM_BOUNCING_CIRCLES; i++) {
         const size = random(adjustedMinCircleSize, maxCircleSize);
         const x = random(0, 100 - (size / viewportWidth * 100));
         const y = random(0, 100 - (size / viewportHeight * 100));
@@ -419,6 +607,18 @@ function animateCircles() {
         const circle = new Circle(x, y, size, moveXSpeed, moveYSpeed, hue);
         circles.push(circle);
         addToGrid(circle);
+    }
+
+    // Create bouncing circles
+    for (let i = 0; i < NUM_BOUNCING_CIRCLES; i++) {
+        const x = random(0, 100 - (BOUNCING_CIRCLE_SIZE / viewportWidth * 100));
+        const y = random(0, 100 - (BOUNCING_CIRCLE_SIZE / viewportHeight * 100));
+        const moveXSpeed = random(-1, 1) * CIRCLE_SPEED;
+        const moveYSpeed = random(-1, 1) * CIRCLE_SPEED;
+        const hue = random(0, 360); // Different hue range for distinction
+        const bCircle = new BouncingCircle(x, y, BOUNCING_CIRCLE_SIZE, moveXSpeed, moveYSpeed, hue);
+        bouncingCircles.push(bCircle);
+        addToGrid(bCircle);
     }
 
     // Ensure social buttons don't spawn too close to the edges
