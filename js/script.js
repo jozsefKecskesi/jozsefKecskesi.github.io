@@ -3,17 +3,20 @@ const controlButton = document.getElementById('control-button');
 
 // --- Constants ---
 const SOCIAL_BUTTON_SIZE = 100;
-const BUTTON_SPEED = 0.4; // Increased for more noticeable movement
-const BUTTON_BOUNDARY_RANDOMNESS = 0.1; // Reduced for more predictable bounces
-const OVERLAP_SEPARATION_FACTOR = 0.5;
-const COLLISION_DAMPING = 0.95; // Damping applied after collision (reduced)
+const BASE_BUTTON_SPEED = 0.3; // Base speed
+const BUTTON_SPEED_RANGE = 0.1; // Range around the base speed
+const BUTTON_BOUNDARY_RANDOMNESS = 0.05; // Further reduced randomness for more stability
+const OVERLAP_SEPARATION_FACTOR = 0.4;
+const COLLISION_DAMPING = 0.85; // Increased damping for more energy loss
+const MIN_SPEED = 0.2; // Minimum speed after collision
+const MAX_SPEED = 0.5; // Maximum speed after collision
 
 let animationRunning = false;
 let linkedinButton = null;
 let githubButton = null;
 let viewportWidth = window.innerWidth;
 let viewportHeight = window.innerHeight;
-let intervalId = null;
+let animationFrameId = null; // Changed from intervalId
 
 // --- Social Button Class ---
 class SocialButton {
@@ -52,7 +55,7 @@ class SocialButton {
         this.updatePosition();
 
         if (animationRunning) {
-            requestAnimationFrame(() => this.update());
+            animationFrameId = requestAnimationFrame(() => this.update()); // Use requestAnimationFrame
         }
     }
 
@@ -60,10 +63,12 @@ class SocialButton {
         if (this.x < 0 || this.x > 100 - (this.size / viewportWidth * 100)) {
             this.moveXSpeed = -this.moveXSpeed + random(-BUTTON_BOUNDARY_RANDOMNESS, BUTTON_BOUNDARY_RANDOMNESS);
             this.moveXSpeed *= COLLISION_DAMPING;
+            this.maintainSpeed();
         }
         if (this.y < 0 || this.y > 100 - (this.size / viewportHeight * 100)) {
             this.moveYSpeed = -this.moveYSpeed + random(-BUTTON_BOUNDARY_RANDOMNESS, BUTTON_BOUNDARY_RANDOMNESS);
             this.moveYSpeed *= COLLISION_DAMPING;
+            this.maintainSpeed();
         }
 
         this.x = Math.max(0, Math.min(100 - (this.size / viewportWidth * 100), this.x));
@@ -100,9 +105,15 @@ class SocialButton {
                 other.moveXSpeed += impulse * nx;
                 other.moveYSpeed += impulse * ny;
 
-                 this.moveXSpeed *= COLLISION_DAMPING; // Apply damping
-                 this.moveYSpeed *= COLLISION_DAMPING; // Apply damping
-        }
+                this.moveXSpeed *= COLLISION_DAMPING; // Apply damping
+                this.moveYSpeed *= COLLISION_DAMPING; // Apply damping
+                other.moveXSpeed *= COLLISION_DAMPING;
+                other.moveYSpeed *= COLLISION_DAMPING;
+
+                this.maintainSpeed();
+                other.maintainSpeed();
+
+            }
 
             const overlap = minDistance - distance;
             const separationX = nx * overlap * OVERLAP_SEPARATION_FACTOR;
@@ -123,6 +134,32 @@ class SocialButton {
             this.handleButtonCollision(githubButton);
         }
     }
+
+    maintainSpeed() {
+        const currentSpeed = Math.sqrt(this.moveXSpeed * this.moveXSpeed + this.moveYSpeed * this.moveYSpeed);
+
+        if (currentSpeed < MIN_SPEED) {
+            const scaleFactor = MIN_SPEED / currentSpeed;
+            this.moveXSpeed *= scaleFactor;
+            this.moveYSpeed *= scaleFactor;
+        } else if (currentSpeed > MAX_SPEED) {
+            const scaleFactor = MAX_SPEED / currentSpeed;
+            this.moveXSpeed *= scaleFactor;
+            this.moveYSpeed *= scaleFactor;
+        }
+
+        // Another possible alternative
+        /*
+        const currentSpeed = Math.sqrt(this.moveXSpeed * this.moveXSpeed + this.moveYSpeed * this.moveYSpeed);
+        let targetSpeed = BASE_BUTTON_SPEED;
+
+        if (currentSpeed < targetSpeed) {
+            const scaleFactor = targetSpeed / currentSpeed;
+            this.moveXSpeed *= scaleFactor;
+            this.moveYSpeed *= scaleFactor;
+        }
+        */
+    }
 }
 
 // --- Helper Functions ---
@@ -139,17 +176,14 @@ function startAnimation() {
     controlButton.textContent = 'Stop Animation';
     linkedinButton.update();
     githubButton.update();
-    intervalId = setInterval(() => {
-      linkedinButton.update();
-      githubButton.update();
-    }, 16); //approx 60 fps
+
 }
 
 function stopAnimation() {
     if (!animationRunning) return;
     animationRunning = false;
     controlButton.textContent = 'Start Animation';
-    clearInterval(intervalId);
+    cancelAnimationFrame(animationFrameId); // Use cancelAnimationFrame
 }
 
 // --- Main Animation Loop ---
@@ -174,8 +208,8 @@ function animateButtons() {
         linkedinX,
         linkedinY,
         buttonSize,
-        random(-1, 1) * BUTTON_SPEED,
-        random(-1, 1) * BUTTON_SPEED,
+        random(-1, 1) * BASE_BUTTON_SPEED,
+        random(-1, 1) * BASE_BUTTON_SPEED,
         'https://www.linkedin.com/in/jozsefkecskesi/',
         "img/linkedin.png",
         "LinkedIn"
@@ -185,8 +219,8 @@ function animateButtons() {
         githubX,
         githubY,
         buttonSize,
-        random(-1, 1) * BUTTON_SPEED,
-        random(-1, 1) * BUTTON_SPEED,
+        random(-1, 1) * BASE_BUTTON_SPEED,
+        random(-1, 1) * BASE_BUTTON_SPEED,
         'https://github.com/jozsefKecskesi',
         "img/github.png",
         "GitHub"
