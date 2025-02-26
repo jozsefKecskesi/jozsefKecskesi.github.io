@@ -2,8 +2,8 @@ const animationContainer = document.getElementById('animation-container');
 const controlButton = document.getElementById('control-button');
 
 // --- Constants ---
-const NUM_CIRCLES = 5;
-const NUM_BOUNCING_OBJECTS = 5; // Number of bouncing objects
+const NUM_CIRCLES = 10;
+const NUM_BOUNCING_OBJECTS = 10; // Number of bouncing objects
 const ANIMATION_SPEED = 0.1;
 const MOUSE_INFLUENCE_RADIUS = 100;
 const REACTIVE_PERCENTAGE = 0.1;
@@ -12,13 +12,13 @@ const REACTIVE_SPEED_MULTIPLIER = 0.3;
 const REACTIVE_SPEED_RANDOMNESS = 0.5;
 const SPEED_RANDOMNESS_FACTOR = 2;
 const SOCIAL_BUTTON_SIZE = 100;
-const BOUNCING_OBJECT_SIZE = 50; // Default size for bouncing objects
+const BOUNCING_OBJECT_SIZE = 150; // Default size for bouncing objects
 const MIN_SIZE_PERCENTAGE = 0.05;
 const MAX_SIZE_PERCENTAGE = 0.15;
 const ABSOLUTE_MIN_SIZE = 20;
 const RESIZE_DEBOUNCE_TIME = 250;
 const INFLUENCE_FACTOR = 0.5;
-const OVERLAP_SEPARATION_FACTOR = 0.5;
+const OVERLAP_SEPARATION_FACTOR = 1.0; // Increased separation
 const GRID_CELL_SIZE = 150;
 const BUTTON_SPEED = 0.5;
 const OBJECT_SPEED = 0.75; // Speed of the bouncing objects
@@ -30,6 +30,7 @@ const SPREAD_FORCE_CONSTANT = 10; // Constant for distance-based spread force
 const EDGE_REPULSION_FORCE = 0.5; // Strength of edge repulsion
 const EDGE_REPULSION_DISTANCE = 100; // Distance from edge where repulsion starts
 const DAMPING_FACTOR = 0.995; // Damping factor, applied each frame
+const COLLISION_DAMPING = 0.8; // Damping applied after collision
 
 // Possible 3D object shapes
 const OBJECT_SHAPES = ['cube', 'sphere', 'cylinder', 'cone']; // add or remove what you want
@@ -126,6 +127,11 @@ class Circle {
                 this.moveYSpeed -= impulse * ny;
                 other.moveXSpeed += impulse * nx;
                 other.moveYSpeed += impulse * ny;
+
+                 this.moveXSpeed *= COLLISION_DAMPING; // Apply damping
+                 this.moveYSpeed *= COLLISION_DAMPING; // Apply damping
+                 other.moveXSpeed *= COLLISION_DAMPING; // Apply damping
+                 other.moveYSpeed *= COLLISION_DAMPING; // Apply damping
             }
 
             const overlap = minDistance - distance;
@@ -167,7 +173,9 @@ class Circle {
             const dotProduct = this.moveXSpeed * nx + this.moveYSpeed * ny;
             this.moveXSpeed -= 2 * dotProduct * nx;
             this.moveYSpeed -= 2 * dotProduct * ny;
-            this.handleBoundaryCollisions();
+
+             this.moveXSpeed *= COLLISION_DAMPING; // Apply damping
+             this.moveYSpeed *= COLLISION_DAMPING; // Apply damping
         }
     }
 
@@ -304,9 +312,11 @@ class BouncingObject {
     handleBoundaryCollisions() {
         if (this.x < 0 || this.x > 100 - (this.size / viewportWidth * 100)) {
             this.moveXSpeed = -this.moveXSpeed + random(-OBJECT_BOUNDARY_RANDOMNESS, OBJECT_BOUNDARY_RANDOMNESS);
+            this.moveXSpeed *= COLLISION_DAMPING;
         }
         if (this.y < 0 || this.y > 100 - (this.size / viewportHeight * 100)) {
             this.moveYSpeed = -this.moveYSpeed + random(-OBJECT_BOUNDARY_RANDOMNESS, OBJECT_BOUNDARY_RANDOMNESS);
+             this.moveYSpeed *= COLLISION_DAMPING;
         }
 
         this.x = Math.max(0, Math.min(100 - (this.size / viewportWidth * 100), this.x));
@@ -342,6 +352,11 @@ class BouncingObject {
                 this.moveYSpeed -= impulse * ny;
                 other.moveXSpeed += impulse * nx;
                 other.moveYSpeed += impulse * ny;
+
+                 this.moveXSpeed *= COLLISION_DAMPING; // Apply damping
+                 this.moveYSpeed *= COLLISION_DAMPING; // Apply damping
+                 other.moveXSpeed *= COLLISION_DAMPING; // Apply damping
+                 other.moveYSpeed *= COLLISION_DAMPING; // Apply damping
             }
 
             const overlap = minDistance - distance;
@@ -444,7 +459,7 @@ class SocialButton {
         const currentLeftPx = this.x / 100 * viewportWidth;
         const currentTopPx = this.y / 100 * viewportHeight;
         const otherLeftPx = otherLeft / 100 * viewportWidth;
-        const otherTopPx = otherTop / 100 * viewportHeight;
+        const otherTopPx = otherTop / 100 * viewportWidth;
 
         const dx = otherLeftPx - currentLeftPx;
         const dy = otherTopPx - currentTopPx;
@@ -465,7 +480,10 @@ class SocialButton {
                 this.moveYSpeed -= impulse * ny;
                 other.moveXSpeed += impulse * nx;
                 other.moveYSpeed += impulse * ny;
-            }
+
+                 this.moveXSpeed *= COLLISION_DAMPING; // Apply damping
+                 this.moveYSpeed *= COLLISION_DAMPING; // Apply damping
+        }
 
             const overlap = minDistance - distance;
             const separationX = nx * overlap * OVERLAP_SEPARATION_FACTOR;
