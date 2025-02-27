@@ -28,6 +28,14 @@
             opacity: 0.7;
         }
 
+        .image-element { /* New class for images */
+            position: absolute;
+            width: 100px;  /* Fixed size for images */
+            height: 100px;
+            cursor: pointer; /* Make sure the cursor changes on hover */
+        }
+
+
         #control-button {
             position: absolute;
             top: 10px;
@@ -38,7 +46,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            z-index: 10; /* Ensure button is on top */
+            z-index: 10;
             font-family: sans-serif;
         }
 
@@ -66,10 +74,17 @@
 
         let mouseX = -mouseInfluenceRadius * 2;
         let mouseY = -mouseInfluenceRadius * 2;
-        let circles = [];
+        let elements = []; // Use a single array for both circles and images
         let animationRunning = true;
         let animationFrameId = null;
         let intervalId = null;
+
+        // --- Helper Functions ---
+        function random(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        // --- Element Creation Functions ---
 
         function createCircle() {
             const circle = document.createElement('div');
@@ -77,104 +92,109 @@
             circle.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
             circle.isReactive = false;
             circle.reactiveUntil = 0;
+            circle.type = 'circle'; // Add a type property
             animationContainer.appendChild(circle);
             return circle;
         }
 
-        function random(min, max) {
-            return Math.random() * (max - min) + min;
+        function createImageElement(imageUrl, linkUrl) {
+            const img = document.createElement('img');
+            img.classList.add('image-element');
+            img.src = imageUrl;
+            img.isReactive = false;
+            img.reactiveUntil = 0;
+            img.type = 'image'; // Add a type property
+            img.linkUrl = linkUrl; // Store the link URL
+
+            // Add click event listener for navigation
+            img.addEventListener('click', () => {
+                window.open(linkUrl, '_blank'); // Open link in a new tab/window
+            });
+
+            animationContainer.appendChild(img);
+            return img;
         }
 
-        function chooseReactiveCircles() {
-            for (const circle of circles) {
-                circle.isReactive = false;
+
+        // --- Reactive Element Selection ---
+
+        function chooseReactiveElements() {
+            for (const element of elements) {
+                element.isReactive = false;
             }
-            const numReactive = Math.floor(numCircles * reactivePercentage);
+            const numReactive = Math.floor((numCircles + 2) * reactivePercentage); // +2 for the images
             for (let i = 0; i < numReactive; i++) {
-                const randomIndex = Math.floor(Math.random() * numCircles);
-                if (!circles[randomIndex].isReactive) {
-                    circles[randomIndex].isReactive = true;
-                    circles[randomIndex].reactiveUntil = Date.now() + reactiveDuration;
+                const randomIndex = Math.floor(Math.random() * elements.length);
+                if (!elements[randomIndex].isReactive) {
+                    elements[randomIndex].isReactive = true;
+                    elements[randomIndex].reactiveUntil = Date.now() + reactiveDuration;
                 }
             }
         }
 
-        function updateCircle(circle) {
+        // --- Element Update Function ---
+
+        function updateElement(element) {
             return () => {
                 if (!animationRunning) return;
 
-                let currentLeft = parseFloat(circle.style.left);
-                let currentTop = parseFloat(circle.style.top);
-                let moveXSpeed = circle.moveXSpeed;
-                let moveYSpeed = circle.moveYSpeed;
-                const size = parseFloat(circle.style.width); // Get size for calculations
+                let currentLeft = parseFloat(element.style.left);
+                let currentTop = parseFloat(element.style.top);
+                let moveXSpeed = element.moveXSpeed;
+                let moveYSpeed = element.moveYSpeed;
+                const size = element.type === 'circle' ? parseFloat(element.style.width) : 100; // Get size
 
                 // --- Collision Detection and Response ---
-                for (const otherCircle of circles) {
-                    if (otherCircle === circle) continue; // Don't check collision with itself
+                for (const otherElement of elements) {
+                    if (otherElement === element) continue;
 
-                    let otherLeft = parseFloat(otherCircle.style.left);
-                    let otherTop = parseFloat(otherCircle.style.top);
-                    const otherSize = parseFloat(otherCircle.style.width);
+                    let otherLeft = parseFloat(otherElement.style.left);
+                    let otherTop = parseFloat(otherElement.style.top);
+                    const otherSize = otherElement.type === 'circle' ? parseFloat(otherElement.style.width) : 100;
 
-                    // Convert positions from vw/vh to pixels for accurate distance calculation
+                    // Convert positions to pixels
                     const currentLeftPx = currentLeft / 100 * window.innerWidth;
                     const currentTopPx = currentTop / 100 * window.innerHeight;
                     const otherLeftPx = otherLeft / 100 * window.innerWidth;
                     const otherTopPx = otherTop / 100 * window.innerHeight;
 
-
                     const dx = otherLeftPx - currentLeftPx;
                     const dy = otherTopPx - currentTopPx;
                     const distance = Math.sqrt(dx * dx + dy * dy);
-                    const minDistance = (size / 2) + (otherSize / 2); // Sum of radii
+                    const minDistance = (size / 2) + (otherSize / 2);
 
                     if (distance < minDistance) {
-                        // Collision detected!
-
-                        // 1. Calculate the normal vector (the direction of the collision)
+                        // Collision!  (Logic remains the same)
                         const nx = dx / distance;
                         const ny = dy / distance;
-
-                        // 2. Calculate the relative velocity
-                        const relativeVelocityX = moveXSpeed - otherCircle.moveXSpeed;
-                        const relativeVelocityY = moveYSpeed - otherCircle.moveYSpeed;
-
-                        // 3. Calculate the dot product of the relative velocity and the normal vector
+                        const relativeVelocityX = moveXSpeed - otherElement.moveXSpeed;
+                        const relativeVelocityY = moveYSpeed - otherElement.moveYSpeed;
                         const dotProduct = relativeVelocityX * nx + relativeVelocityY * ny;
 
-                        // 4.  Only respond if circles are moving towards each other (dotProduct < 0)
                         if (dotProduct < 0) {
-                           // 5. Calculate the impulse (the change in velocity)
-                            const impulse = (2 * dotProduct) / (1 + 1); // Assuming equal mass for simplicity.  Modify for different masses.
-
-                            // 6. Apply the impulse to both circles
+                            const impulse = (2 * dotProduct) / (1 + 1);
                             moveXSpeed -= impulse * nx;
                             moveYSpeed -= impulse * ny;
-                            otherCircle.moveXSpeed += impulse * nx;
-                            otherCircle.moveYSpeed += impulse * ny;
+                            otherElement.moveXSpeed += impulse * nx;
+                            otherElement.moveYSpeed += impulse * ny;
                         }
-
-                        // 7.  Separation: Prevent circles from overlapping
-                        const overlap = minDistance - distance;
-                        const separationX = nx * overlap * 0.5;  // Move each circle half the overlap distance
+                       const overlap = minDistance - distance;
+                        const separationX = nx * overlap * 0.5;
                         const separationY = ny * overlap * 0.5;
 
-                        // Convert separation back to vw/vh and add it to current position.
                         currentLeft -= (separationX / window.innerWidth * 100);
                         currentTop  -= (separationY / window.innerHeight * 100);
                         otherLeft += (separationX / window.innerWidth * 100);
                         otherTop  += (separationY / window.innerHeight * 100);
 
-                        //Update the other cirlce directly.
-                        otherCircle.style.left = `${Math.max(0, Math.min(100 - (otherSize / window.innerWidth * 100), otherLeft))}vw`;
-                        otherCircle.style.top = `${Math.max(0, Math.min(100 - (otherSize / window.innerHeight * 100), otherTop))}vh`;
+                        otherElement.style.left = `${Math.max(0, Math.min(100 - (otherSize / window.innerWidth * 100), otherLeft))}vw`;
+                        otherElement.style.top = `${Math.max(0, Math.min(100 - (otherSize / window.innerHeight * 100), otherTop))}vh`;
                     }
                 }
-                // --- End Collision Detection and Response ---
+                // --- End Collision Detection ---
 
-
-                if (circle.isReactive && Date.now() < circle.reactiveUntil) {
+                // --- Mouse Reactivity --- (Logic remains mostly the same)
+                if (element.isReactive && Date.now() < element.reactiveUntil) {
                     const dx = (mouseX / window.innerWidth * 100) - currentLeft;
                     const dy = (mouseY / window.innerHeight * 100) - currentTop;
                     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -185,41 +205,42 @@
                         moveYSpeed += (dy / distance) * influence * 0.5 * reactiveSpeedMultiplier * (1 + random(-reactiveSpeedRandomness, reactiveSpeedRandomness));
                     }
                 }
-                const speedLimit = animationSpeed * (circle.isReactive ? 5 * reactiveSpeedMultiplier : 5);
+
+                // --- Speed Limit and Boundary Bounce --- (Logic remains the same)
+                const speedLimit = animationSpeed * (element.isReactive ? 5 * reactiveSpeedMultiplier : 5);
                 moveXSpeed = Math.max(-speedLimit, Math.min(speedLimit, moveXSpeed));
                 moveYSpeed = Math.max(-speedLimit, Math.min(speedLimit, moveYSpeed));
 
                 currentLeft += moveXSpeed;
                 currentTop += moveYSpeed;
 
-                // Bounce off edges (keep this after collision handling)
                 if (currentLeft < 0 || currentLeft > 100 - (size / window.innerWidth * 100)) moveXSpeed *= -1;
                 if (currentTop < 0 || currentTop > 100 - (size / window.innerHeight * 100)) moveYSpeed *= -1;
 
-                circle.moveXSpeed = moveXSpeed;
-                circle.moveYSpeed = moveYSpeed;
+                element.moveXSpeed = moveXSpeed;
+                element.moveYSpeed = moveYSpeed;
 
-                circle.style.left = `${Math.max(0, Math.min(100 - (size / window.innerWidth * 100), currentLeft))}vw`;
-                circle.style.top = `${Math.max(0, Math.min(100 - (size / window.innerHeight * 100), currentTop))}vh`;
+                element.style.left = `${Math.max(0, Math.min(100 - (size / window.innerWidth * 100), currentLeft))}vw`;
+                element.style.top = `${Math.max(0, Math.min(100 - (size / window.innerHeight * 100), currentTop))}vh`;
 
-                animationFrameId = requestAnimationFrame(updateCircle(circle));
+
+                animationFrameId = requestAnimationFrame(updateElement(element));
             };
         }
 
+        // --- Animation Control Functions --- (Slightly modified)
 
         function startAnimation() {
             if (animationRunning) return;
-
             animationRunning = true;
             controlButton.textContent = 'Stop Animation';
-
-            for (const circle of circles) {
-                 animationFrameId = requestAnimationFrame(updateCircle(circle));
+            for (const element of elements) {
+                animationFrameId = requestAnimationFrame(updateElement(element));
             }
-            intervalId = setInterval(chooseReactiveCircles, reactiveDuration);
+            intervalId = setInterval(chooseReactiveElements, reactiveDuration);
         }
 
-       function stopAnimation() {
+        function stopAnimation() {
           if (!animationRunning) return;
           animationRunning = false;
           controlButton.textContent = 'Start Animation';
@@ -227,33 +248,53 @@
           clearInterval(intervalId);
        }
 
-        function animateCircles() {
+        // --- Initialization Function ---
+        function animateElements() {
             animationContainer.innerHTML = '';
-            circles = [];
+            elements = [];
 
+            // Create circles
             for (let i = 0; i < numCircles; i++) {
                 const circle = createCircle();
-                circles.push(circle);
+                elements.push(circle);
                 circle.moveXSpeed = random(-animationSpeed, animationSpeed);
                 circle.moveYSpeed = random(-animationSpeed, animationSpeed);
 
                 const size = random(minCircleSize, maxCircleSize);
-                let x = random(0, 100);
-                let y = random(0, 100);
-
                 circle.style.width = `${size}px`;
                 circle.style.height = `${size}px`;
-                circle.style.left = `${x}vw`;
-                circle.style.top = `${y}vh`;
-
-                animationFrameId = requestAnimationFrame(updateCircle(circle));
+                circle.style.left = `${random(0, 100)}vw`;
+                circle.style.top = `${random(0, 100)}vh`;
             }
 
-            chooseReactiveCircles();
-            intervalId = setInterval(chooseReactiveCircles, reactiveDuration);
+            // Create image elements
+            const linkedinImage = createImageElement('img/linkedin.png', 'https://www.linkedin.com/in/jozsefkecskesi/');
+            elements.push(linkedinImage);
+            linkedinImage.moveXSpeed = random(-animationSpeed, animationSpeed);
+            linkedinImage.moveYSpeed = random(-animationSpeed, animationSpeed);
+            linkedinImage.style.left = `${random(0, 100)}vw`;
+            linkedinImage.style.top = `${random(0, 100)}vh`;
+
+
+            const githubImage = createImageElement('img/github.png', 'https://github.com/jozsefKecskesi');
+            elements.push(githubImage);
+            githubImage.moveXSpeed = random(-animationSpeed, animationSpeed);
+            githubImage.moveYSpeed = random(-animationSpeed, animationSpeed);
+            githubImage.style.left = `${random(0, 100)}vw`;
+            githubImage.style.top = `${random(0, 100)}vh`;
+
+            // Start animation for all elements
+             for (const element of elements) {
+                animationFrameId = requestAnimationFrame(updateElement(element));
+            }
+
+            chooseReactiveElements();
+            intervalId = setInterval(chooseReactiveElements, reactiveDuration);
         }
 
-        animateCircles();
+        animateElements();
+
+        // --- Event Listeners --- (No changes needed here)
 
         controlButton.addEventListener('click', () => {
           if(animationRunning) {
@@ -274,9 +315,9 @@
         });
 
         window.addEventListener('resize', () => {
-          if(animationRunning) {
-             stopAnimation();
-             animateCircles();
+          if (animationRunning) {
+              stopAnimation();
+              animateElements();
           }
         });
     </script>
